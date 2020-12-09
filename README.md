@@ -1,4 +1,4 @@
-# BalLeRMixPlus
+# BalLeRMix+
 ## ---*Bal*ancing selection *L*ik*e*lihood *R*atio *Mix*ture models Plus
 
 This repository hosts the software package for BalLeRMixPlus, an extension of [BalLeRMix](https://github.com/bioXiaoheng/BalLeRMix) that can jointly detect recent positive selection and long-term balancing selection.  
