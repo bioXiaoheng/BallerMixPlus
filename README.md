@@ -1,7 +1,7 @@
 # BalLeRMix+
 ## ---*Bal*ancing selection *L*ik*e*lihood *R*atio *Mix*ture models Plus
 
-This repository hosts the software package for BalLeRMixPlus, an extension of [BalLeRMix](https://github.com/bioXiaoheng/BalLeRMix) that can jointly detect recent positive selection and long-term balancing selection.  
+This repository hosts the software package for BalLeRMix+, an extension of [BalLeRMix](https://github.com/bioXiaoheng/BalLeRMix) that can jointly detect recent positive selection and long-term balancing selection.  
 
 ------
 
@@ -14,13 +14,13 @@ Note that BalLeRMixPlus does not consider multi-allelic balancing selection.
 ## Quick Guide 
 
 ```
-usage: BalLeRMixPlus.py [-h]  -i INFILE [-o OUTFILE] --spect SPECTFILE [--getSpect] [--getConfig] 
+usage: BalLeRMix+.py [-h]  -i INFILE [-o OUTFILE] --spect SPECTFILE [--getSpect] [--getConfig] 
                         [--nofreq] [--nosub] [--MAF] [--findBal] [--findPos] 
                         [--physPos] [--rec RRATE] [--fixSize] [-w W] [--noCenter] [-s STEP] 
                         [--fixX X] [--fixAlpha ABETA] [--rangeA SEQA] [--listA LISTA]
                        
 ```
-You can use `python BalLeRMixPlus.py -h` to see the more detailed help page.
+You can use `python BalLeRMix+.py -h` to see the more detailed help page.
 
 ### 1. Input format
 For B<sub>0</sub> and B<sub>2</sub> statistics, the user should first generate the __*tab-delimited*__ site frequency spectrum file, __*without header*__, *e.g.*:
