@@ -49,15 +49,15 @@ For B<sub>1</sub>, the helper file (also tab-delimited) records the genome-wide 
 The BalLeRMix+.py program can help generate helper files from the concatenated input files. 
 For site frequency spectrum: 
 
-  python BalLeRMix+.py -i <concatenated input file> --getSpect --spect <spectrum file name>
+    python BalLeRMix+.py -i <concatenated input file> --getSpect --spect <spectrum file name>
   
 For minor allele frequency spectrum:
   
-  python BalLeRMix+.py -i <concatenated input file> --getSpect --MAF --spect <spectrum file name>
+    python BalLeRMix+.py -i <concatenated input file> --getSpect --MAF --spect <spectrum file name>
   
 For polymorphism-substitution configuration file:
   
-  python BalLeRMix+.py -i <concatenated input file> --getConfig --spect <config file name>
+    python BalLeRMix+.py -i <concatenated input file> --getConfig --spect <config file name>
 
 ### 2. Running the *B* statistics
 To perform B<sub>2</sub> scans on your input data, use
