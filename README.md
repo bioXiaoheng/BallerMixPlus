@@ -35,7 +35,7 @@ The current release supports Python version 3.6 and above, and needs to have num
 There are two examples in `test/` folder, as well as some helper files. To obtain helper files from the concatenated input (`test/HC_CEU_Neut_Concatenated-DAF.txt`), you can either use other command-line tools such as `awk` or run the program:
 ```
 #navigate to the cloned repository
-cd BalLeRMixPlus/
+cd BallerMixPlus/
 
 #helper file for B1
 python BalLeRMix+_v1.py -i test/HC_CEU_Neut_Concatenated-DAF.txt --getConfig --spect test_config.txt
