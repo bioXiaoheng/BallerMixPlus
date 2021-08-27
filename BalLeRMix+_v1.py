@@ -77,7 +77,6 @@ class InputData:
 				physPos,k,n = [int(float(l[0])),int(l[2]),int(l[3])]
 
 				#check for B2maf
-				#this should really go to reading input part
 				if MAF and not translate:
 					try:
 						assert k <= n/2
@@ -211,7 +210,7 @@ class NeutralSFS:
 		self.spect = g ; self.sampSizes = set(N)
 		#return(g, N)
 
-	def __init__(self, spectfile, nofreq, MAF):
+	def __init__(self, spectfile, nofreq, MAF, nosub):
 		self.spect = {}
 		self.sampSizes = set()
 		self.probs = []
@@ -223,11 +222,9 @@ class NeutralSFS:
 		if nofreq: #B1
 			#read GW/neut
 			self.readConfig(spectfile)
-			#get selection
-			#self.selSpect = self.getBetaBinom_polySub()
 
 		else: #B2 and B2maf
-			self.readSpect(spectfile, MAF)
+			self.readSpect(spectfile, MAF, nosub)
 
 	#get individual probs for poly-sub data
 	def _get_one_neut_prob_B1(self, k, n):
@@ -381,9 +378,8 @@ def calcBaller(window_indice, testSite, InputData, NeutralSFS, NormalizedBetaBin
 	#define the window
 	#window = np.array([InputData.genPos[i] for i in window_indice])
 	window = InputData.genPos[ window_indice ]
-	dist = np.abs(window - testSite)
-	k = InputData.count[ window_indice ]
-	n = InputData.total[ window_indice ]
+	#dist = np.abs(window - testSite)
+	dist = np.abs( InputData.genPos - testSite )
 
 	#initiate optimization
 	#CLRs will not be saved for now. Can be made to be written out in the future, be there interests in likelihood surfaces.
@@ -392,7 +388,9 @@ def calcBaller(window_indice, testSite, InputData, NeutralSFS, NormalizedBetaBin
 	#last = time.time()
 	for A in set(Grids.A):
 		alphas = np.exp(- A*dist)
-		subwindow_indice = np.where( (alphas >= 1e-8) & (window != testSite) )[0]
+		effective_indice = np.where( (alphas >= 1e-8) & (InputData.genPos != testSite) )[0]
+		# get intersect with  window_indice
+		subwindow_indice = list( set(window_indice) & set(effective_indice) )
 		if len(subwindow_indice) == 0:
 			continue
 		subset_alphas = alphas[subwindow_indice]
