@@ -158,7 +158,7 @@ To perform B<sub>1</sub> scans on your input data, use
 ### 4. Customizing the sliding window for your scan
 <details open>
 <summary></summary>
-All arguments besides the aforementioned ones are for customizing the scan. They are not necessary for the scan to complete.
+All arguments besides the aforementioned ones are for customizing the scan. Their usage is largely based on the previous `BalLeRMix` (read its detailed manual [here](https://github.com/bioXiaoheng/BalLeRMix/blob/master/software/BalLeRMix_manual.pdf)). Note that they are not necessary for the scan to complete. In general, they can be grouped into the following three categories:
 
 - `[--usePhysPos] [--rec RRATE] `:
 
