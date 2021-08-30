@@ -9,7 +9,7 @@ In BalLeRMix+, we introduce the optional `--findPos` and `--findBal`, as well as
 
 To help visualize the output, we also added an R script in the `test/` folder in case you need. 
 
-Note that `BalLeRMix+` does not consider multi-allelic balancing selection.
+Note that BalLeRMix+ does not consider multi-allelic balancing selection.
 
 ------
 
@@ -30,21 +30,41 @@ To install `BalLeRMix+`, simply navigate to your working directory and clone thi
 
 The current release supports Python version 3.6 and above, and needs to have numpy (>=1.19.1) and scipy (>=1.5.0) installed. 
 
-### 1. Examples
+### 1. Quick start and examples
+To run the program, the user can build commands based on `python BalLeRMix+_v1.py -i <input file> [other arguments]`, with no particular order required for each argument. In particular, useful argument combinations are
 
-There are two examples in `test/` folder, as well as some helper files. To obtain helper files from the concatenated input (`test/HC_CEU_Neut_Concatenated-DAF.txt`), you can either use other command-line tools such as `awk` or run the program:
+| *B* variant | Input data type | To generate helper file | To run scan | 
+|:-----------:|:---------------:|:-----------------------:|:-----------:|
+| *B<sub>2</sub>* | Derived allele frequency (DAF) plus substitutions (x==n)| `--getSpect` `--spect <spect file>` | `-o <output file>` |
+| *B<sub>2,MAF</sub>* | Minor allele frequency (MAF) plus substitutions (x==0)| `--getSpect` `--MAF``--spect <spect file>` | `--MAF`  `-o <output file>` |
+| *B<sub>1</sub>* | Polymorphism (0<x<n) or substitution (x==n) calls | `--getConfig` `--spect <config file>` | `--noFreq` `-o <output file>` |
+| *B<sub>0</sub>* | Derived allele frequency (DAF)| `--getSpect` `--noSub`  `--spect <spect file>` | `--noSub` `-o <output file>` |
+| *B<sub>0,MAF</sub>* | Minor allele frequency (MAF)| `--getSpect` `--noSub` `--MAF`  `--spect <spect file>` | `--noSub` `--MAF`  `-o <output file>` |
+
+Note that when generating helper files, the input must be concatenated from all sequences in the genome. One command-line option to concatenate them is (suppose your input files are named `input_chr<n>.txt`):
+```
+cat input_chr*.txt | awk '(NR == 1 || $1 != "position")' > Concatenated_input_for_helper_file.txt
+```
+
+There are two examples in `test/` folder, including their input files as well as some helper files. To obtain helper files from the concatenated input (`test/HC_CEU_Neut_Concatenated-DAF.txt`), you can run:
 ```
 #navigate to the cloned repository
 cd BallerMixPlus/
 
-#helper file for B1
+# generate helper file for B1
 python BalLeRMix+_v1.py -i test/HC_CEU_Neut_Concatenated-DAF.txt --getConfig --spect test_config.txt
 
-#helper file for B2
+# generate helper file for B2
 python BalLeRMix+_v1.py -i test/HC_CEU_Neut_Concatenated-DAF.txt --getSpect --spect test_DFS.txt
 
-#helper file for B2maf
+# generate helper file for B2maf
 python BalLeRMix+_v1.py -i test/HC_CEU_Neut_Concatenated-DAF.txt --getSpect --MAF --spect test_MFS.txt
+
+# generate helper file for B0
+python BalLeRMix+_v1.py -i test/HC_CEU_Neut_Concatenated-DAF.txt --getSpect --noSub --spect test_DFS-noSub.txt
+
+# generate helper file for B0maf
+python BalLeRMix+_v1.py -i test/HC_CEU_Neut_Concatenated-DAF.txt --getSpect --noSub --MAF --spect test_MFS-noSub.txt
 ```
 The resulting files should be the same as `test/HC_CEU_Neut_config_for_B1.txt`, `test/HC_CEU_Neut_DAF_spect_for_B2.txt`, and `test/HC_CEU_Neut_MAF_spect_for_B2maf.txt`, respectively.
 
@@ -53,20 +73,27 @@ To run B<sub>1</sub>, B<sub>2</sub>, and B<sub>2,MAF</sub>, respectively, on the
 #run B1
 python BalLeRMix+_v1.py -i test/Example1_fullSweep_200kya_DAF.txt -o testout_ex1_B1.txt --noFreq --spect test/HC_CEU_Neut_config_for_B1.txt
 
-#run B2
+# run B2
 python BalLeRMix+_v1.py -i test/Example1_fullSweep_200kya_DAF.txt -o testout_ex1_B2.txt --spect test/HC_CEU_Neut_DAF_spect_for_B2.txt
 
-#run B2maf
+# run B2maf
 python BalLeRMix+_v1.py -i test/Example1_fullSweep_200kya_MAF.txt -o testout_ex1_B2maf.txt --MAF --spect test/HC_CEU_Neut_MAF_spect_for_B2maf.txt
 
 ```
 You will find that the output should be close, if not identical, to the files `test/output/Example1_B1.txt`, `test/output/Example1_B2.txt`, and `test/output/Example1_B2maf.txt`, respectively. To visualize them, you can try:
 ```
-Rscript test/plotScores.r <your output file> <desired image name>
+Rscript test/plotScores.r <output from BalLeRMix+_v1.py> <desired image name>
 ```
-You should be able to generate images resembling `test/ScorePlot_example1_B2.png`. Note that this R script requires the `ggplot2` package be installed.
+You should be able to generate images resembling `test/ScorePlot_example1_B2.png`. Note that this R script requires the `ggplot2` package.
 
 The same operations can be repeated on example 2, and you can check your output with `test/output/Example2_B1.txt`, `test/output/Example2_B2.txt`, and `test/output/Example2_B2maf.txt` accordingly.
+
+By default, the `BalLeRMix+_v1.py` script uses all informative sites provided in the input. With additional arguments, users can customize the size and centers of their sliding windows for the analyses. Details on these areguments are listed in section 4 As an example, one can run
+```
+# compute B0maf (--noSub --MAF) while using physical positions as coordinates (--usePhysPos), scan with sliding windows of a fixed physical size (--fixWinSize) of 1000 nt (-w 1000), centered on every other (--step 2) informative sites
+python BalLeRMix+_v1.py --noSub --MAF --spect test/HC_CEU_Neut_MAF-nosub_spect_for_B0maf.txt -i test/Example2_balancing_10MYA_MAF_nosub.txt -o testout_B0maf_1kb-500b.txt --usePhysPos --fixWinSize -w 1000 --step 2  
+```
+The output should be close, if not identical, to `test/output/Example2_B0maf_1kb-2sites.txt`.
 
 ### 2. Input and helper files
 <details open>
@@ -145,6 +172,12 @@ All arguments besides the aforementioned ones are for customizing the scan. They
 
 - ` [--fixWinSize] [-w R] [--noCenter] [-s STEP] [--usePhysPos]`:
 
-   These areguments are for customizing the scanning window. You probably won't need them because `BalLeRMix` and `BalLeRMix+` are robust to window sizes. For more details on how these arguments work, check the `BalLeRMix` software manual.
-
+   These areguments are for customizing the scanning window. You probably won't need them because `BalLeRMix` and `BalLeRMix+` are robust to window sizes. The software help page (`python BalLeRMix+_v1.py --help`) provides more details on how these arguments work. The table below lists combinations the users can go with to customize their scans:
+  
+ |   Window Span             |  Position tested   |          Required Commands          |    Optional Commands  | 
+ |:-------------------------:|:------------------:|:-----------------------------------:|:---------------------:|
+ |Fixed sequence length (nt) | Informative sites  |`--fixWinSize` `-w <nt>` `[-s <sites>]` `[--usePhysPos]`| `[--rec <cM/nt>]`     |
+ |Fixed sequence length (nt) |Evenly-spaced arbitrary positions|`--fixWinSize` `--noCenter``-w <nt>` `-s <nt>` `[--usePhysPos]`| `[--rec <cM/nt>]`     |
+ |Fixed number of informative sites| Informative sites  |`-w <sites in radius>` `-s <sites per step>`| `[--usePhysPos]` `[--rec <cM/nt>]`|
+  
 </details>
