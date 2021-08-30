@@ -7,7 +7,7 @@ from datetime import datetime
 #module for reading input
 class InputData:
 
-	def __init__(self, infile, nofreq=False, MAF=False, minCount = 1, phys=False, Rrate=1e-6):
+	def __init__(self, infile, nofreq = False, MAF = False, nosub = False, minCount = 1, phys = False, Rrate = 1e-6):
 		self.position = []
 		self.genPos = []
 		self.count = []
@@ -20,17 +20,58 @@ class InputData:
 		#read input
 		if nofreq:
 			self.readPolyCalls(infile, pos_type, Rrate)
+
+			self.count = np.array(self.count)
+			self.total = np.array(self.total)
+			self.genPos = np.array(self.genPos)
 		else:
-			self.readCounts(infile, pos_type, Rrate, MAF)
+			self.readCounts(infile, pos_type, Rrate)
+
+			self.count = np.array(self.count)
+			self.total = np.array(self.total)
+			self.genPos = np.array(self.genPos)
+
+			_Bmaf = ['', 'MAF']   # s.t. _Bmaf[MAF] can be a nice suffix
+			_B02 = ['B_2', 'B_0']   # s.t. _B02[nosub] shows which gets computed
+			_stat = '%s%s' % ( _B02[nosub], _Bmaf[MAF])
+
+			#check for B0
+			if nosub:
+				if sum(self.count == self.total) > 0:
+					print(f'You have chosen to compute {_stat}. Substitutions (x==n) in the input will be ignored.')
+					# remove substitution
+					indice_to_keep = np.where(self.count != self.total)
+					self.count = self.count[indice_to_keep]
+					self.total = self.total[indice_to_keep]
+					self.genPos = self.genPos[indice_to_keep]
+					self.position = self.position[indice_to_keep]
+					self.numSites = len(self.count)
+
+			#check for Bmaf
 			if MAF:
+				if sum(self.count > self.total/2) > 0:
+					print(f'Input data includes non-MAF site/s (frequency >= 0.5) despite choosing to use {_stat} (with --MAF). These frequencies will be folded for following analyses.')
+					# fold
+					self.count = np.where( self.count > self.total/2, (self.total - self.count), self.count)
+				# 0 in maf input is substitution
 				self.minCount = min([k for k in self.count if k > 0])
-			else:
+			else: #this include B0
+				try:
+					# check that derived freq is used
+					assert sum(self.count == 0) == 0
+				except:
+					print(f'Please make sure to include derived allele frequency only. Sites with zero derived alleles (x==0) should not be included in your input.')
+					# remove zeros
+					#indice_to_keep = np.where(self.count != 0)
+					#self.count = self.count[indice_to_keep]
+					#self.total = self.total[indice_to_keep]
+					#self.genPos = self.genPos[indice_to_keep]
+					sys.exit()
+
+				# note to self: need to account for minCount for different window sizes
 				self.minCount = min(self.count)
 
 		self.sampSizes = set(self.total)
-		self.count = np.array(self.count)
-		self.total = np.array(self.total)
-		self.genPos = np.array(self.genPos)
 
 	#take all non-N cases as polymorphisms
 	##k=1 if polymorphism, k=0 if substitution
@@ -66,7 +107,8 @@ class InputData:
 		#just to make sure it closes
 		sites.close()
 
-	def readCounts(self, infile, pos_type, Rrate, MAF):
+	# for B2 or B0
+	def readCounts(self, infile, pos_type, Rrate):
 		translate = False
 		with open(infile , 'r') as sites:
 			l = next(sites)
@@ -76,16 +118,6 @@ class InputData:
 				#in case physical positions carry decimal points
 				physPos,k,n = [int(float(l[0])),int(l[2]),int(l[3])]
 
-				#check for B2maf
-				if MAF and not translate:
-					try:
-						assert k <= n/2
-					except:
-						print(f'Input data includes non-MAF site/s (frequency >= 0.5) despite choosing to use B_2maf (with --MAF). These frequencies will be folded for following analyses.')
-						translate = True
-						k = n-k
-				elif MAF and translate:
-					k = min(k, n-k)
 				#store physPos*Rrate (column 0) if use physical position, else store genetic position (column 1)
 				sitepos = float(l[pos_type])*(1-pos_type)*Rrate + float(l[pos_type])*(pos_type)
 
@@ -146,7 +178,7 @@ class Grids:
 class NeutralSFS:
 
 	#read spect for B2 or B2maf. For B2maf, check whether polarized frequency exist, and if so, fold.
-	def readSpect (self, spectfile, MAF):
+	def readSpect (self, spectfile, MAF, nosub):
 		g = {}; N = []
 		checksum=0.
 		with open(spectfile,'r') as spect:
@@ -155,6 +187,9 @@ class NeutralSFS:
 				x=int(l[0]); n=int(l[1])
 				f=float(l[2])
 				if MAF:
+					if nosub and x == 0:
+						print(f'You have chosen to compute B_0maf. Please do not account for sites with zero counts (x==0) in your input.')
+						sys.exit()
 					try:
 						assert x < (n/2 + 1)
 						g[(x,n)]=f
@@ -165,6 +200,9 @@ class NeutralSFS:
 						else:
 							g[ (n-x, n)] = f
 				else:
+					if nosub and x == n:
+						print(f'You have chosen to compute B_2maf. Please do not account for substitutions (derived allele count x == n) in your input.')
+						sys.exit()
 					g[(x, n)] = f
 
 				checksum += f
@@ -223,15 +261,11 @@ class NeutralSFS:
 			#read GW/neut
 			self.readConfig(spectfile)
 
-		else: #B2 and B2maf
+		else: #B2, B2maf, B0, B0maf
 			self.readSpect(spectfile, MAF, nosub)
 
-	#get individual probs for poly-sub data
-	def _get_one_neut_prob_B1(self, k, n):
-		return ( self.spect[(k, n)] )
-
-	#get individual probs for allele freq data
-	def _get_one_neut_prob_B2s(self, k, n):
+	#get individual probs
+	def _get_one_neut_prob(self, k, n):
 		return ( self.spect[(k, n)] )
 
 	#get the proportion of sample sizes
@@ -239,21 +273,20 @@ class NeutralSFS:
 		return ( self.sampProps[n] )
 
 	#get a list of per-site neut probs 
-	def get_neut_probs(self, InputData, nofreq, MAF):
+	def get_neut_probs(self, InputData):
 		if self.probs == []:
-			#sanity check
+			# sanity check: make sure all (x, n)'s are accounted for
+			all_xn_combos = set( zip(InputData.count, InputData.total) )
 			try:
-				assert InputData.sampSizes.issubset( self.sampSizes )
+				#assert InputData.sampSizes.issubset( self.sampSizes )
+				assert all_xn_combos.issubset( set(self.spect.keys()) )
 			except:
-				print(f'Input data includes sample sizes not included in the helper file. Please double-check your inputs.')
+				print(f'Input data includes sample counts and sizes not included in the helper file. Please double-check your inputs.')
 				sys.exit()
 
 			#vectorize
-			if nofreq:
-				self._get_neut_probs = np.vectorize( self._get_one_neut_prob_B1 )
-			else:
-				self._get_neut_probs = np.vectorize( self._get_one_neut_prob_B2s )
-
+			self._get_neut_probs = np.vectorize( self._get_one_neut_prob )
+			#get probs
 			self.probs = self._get_neut_probs( InputData.count, InputData.total )
 
 		#sanity check
@@ -281,7 +314,7 @@ class NormalizedBetaBinom:
 		b = a/x -a 
 		return(b)
 
-	def __init__(self, InputData, Grids, nofreq, MAF):
+	def __init__(self, InputData, Grids, nofreq, MAF, nosub):
 		#create a look-up library such that each configuration only get computed once
 		self.betabinomprobs = {}
 		self.rawProbs = {}
@@ -296,16 +329,25 @@ class NormalizedBetaBinom:
 				for n in InputData.sampSizes:
 					indice = np.where( InputData.total == n )
 					subset_counts = InputData.count[indice]
+
 					#get raw probs & fold dist'n
 					if nofreq:
 						raw_probs = 0.5 * ( self.get_raw_probs(subset_counts , n, x, a, 'B1') + self.get_raw_probs(subset_counts, n, 1.-x, a, 'B1') )
 						probs_list = raw_probs / self.get_B1_normBase(n, x, a, InputData.minCount)
 					elif MAF:
-						raw_probs = 0.5 * ( self.get_raw_probs(subset_counts , n, x, a, 'B2maf') + self.get_raw_probs(subset_counts, n, 1.-x, a, 'B2maf') )
-						probs_list = raw_probs / self.get_B2maf_normBase(n, x, a, InputData.minCount)
+						if nosub:
+							raw_probs = 0.5 * ( self.get_raw_probs(subset_counts , n, x, a, 'B0maf') + self.get_raw_probs(subset_counts, n, 1.-x, a, 'B0maf') )
+							probs_list = raw_probs / self.get_B0maf_normBase(n, x, a, InputData.minCount)
+						else:
+							raw_probs = 0.5 * ( self.get_raw_probs(subset_counts , n, x, a, 'B2maf') + self.get_raw_probs(subset_counts, n, 1.-x, a, 'B2maf') )
+							probs_list = raw_probs / self.get_B2maf_normBase(n, x, a, InputData.minCount)
 					else:
-						raw_probs = 0.5 * ( self.get_raw_probs(subset_counts , n, x, a, 'B2') + self.get_raw_probs(subset_counts, n, 1.-x, a, 'B2') )
-						probs_list = raw_probs / self.get_B2_normBase(n, x, a, InputData.minCount)
+						if nosub:
+							raw_probs = 0.5 * ( self.get_raw_probs(subset_counts , n, x, a, 'B0') + self.get_raw_probs(subset_counts, n, 1.-x, a, 'B0') )
+							probs_list = raw_probs / self.get_B0_normBase(n, x, a, InputData.minCount)
+						else:
+							raw_probs = 0.5 * ( self.get_raw_probs(subset_counts , n, x, a, 'B2') + self.get_raw_probs(subset_counts, n, 1.-x, a, 'B2') )
+							probs_list = raw_probs / self.get_B2_normBase(n, x, a, InputData.minCount)
 
 					#save
 					full_probs_list[indice] = probs_list
@@ -338,10 +380,10 @@ class NormalizedBetaBinom:
 				probs = np.where( k == 0 , betabinom(n,a,b).pmf(n) , (1. - betabinom(n,a,b).pmf(n) - betabinom(n,a,b).pmf(n)) )
 				self.rawProbs[(n, x, a)] = probs
 
-			elif Stat == "B2":
+			elif Stat == "B2" or Stat == 'B0':
 				self.rawProbs[(n, x, a)] = self._get_betabinom_probs(k, n, x, a)
 
-			elif Stat == "B2maf":
+			elif Stat == "B2maf" or Stat == 'B0maf':
 				probs = self._get_betabinom_probs(k, n, x, a) + self._get_betabinom_probs(n-k, n, x, a)
 				#n/2 double counted if n is even
 				if n % 2 == 0:
@@ -363,7 +405,7 @@ class NormalizedBetaBinom:
 		if (n, x, a) not in self.normBase:
 			#make sure the excluded counts do not include n bc it's substitution (and shows up as 0 in data)
 			excluded_counts = np.concatenate( (np.arange(minCount), np.arange(n - minCount + 1, n) ) )
-			excluded_probs = 0.5 * ( self._get_betabinom_probs( excluded_counts , n, x, a) + self._get_betabinom_probs( excluded_counts , n, 1. - x, a) )
+			excluded_probs = 0.5 * ( self._get_betabinom_probs( excluded_counts , n, x, a) + self._get_betabinom_probs(excluded_counts , n, 1. - x, a) )
 			self.normBase[(n, x, a)] = 1. - np.sum(excluded_probs)
 
 		return ( self.normBase[(n,x,a)] )
@@ -372,12 +414,32 @@ class NormalizedBetaBinom:
 		#this is identical to B2's
 		return ( self.get_B2_normBase(n, x, a, minCount) )
 
-#import time
+	def get_B0_normBase(self, n, x, a, minCount):
+		if (n, x, a) not in self.normBase:
+			excluded_counts = np.concatenate((np.arange(minCount), np.array([n])))
+			excluded_probs = 0.5 * ( self._get_betabinom_probs( excluded_counts , n, x, a) + self._get_betabinom_probs(excluded_counts , n, 1. - x, a) )
+			self.normBase[(n, x, a)] = 1. - np.sum(excluded_probs)
+
+		return (self.normBase[(n,x,a)])
+
+	def get_B0maf_normBase(self, n, x, a, minCount):
+		if (n, x, a) not in self.normBase:
+			excluded_counts = np.concatenate( (np.arange(minCount), np.arange(n - minCount + 1, n + 1) ) )
+			excluded_probs = 0.5 * ( self._get_betabinom_probs( excluded_counts , n, x, a) + self._get_betabinom_probs(excluded_counts , n, 1. - x, a) )
+			self.normBase[(n, x, a)] = 1. - np.sum(excluded_probs)
+
+		return (self.normBase[(n,x,a)])
+
 
 def calcBaller(window_indice, testSite, InputData, NeutralSFS, NormalizedBetaBinom, Grids):
 	#define the window
 	#window = np.array([InputData.genPos[i] for i in window_indice])
-	window = InputData.genPos[ window_indice ]
+	try:
+		window = InputData.genPos[ window_indice ]
+	except Exception as e:
+		print(e)
+		print(len(InputData.genPos), window_indice)
+		sys.exit()
 	#dist = np.abs(window - testSite)
 	dist = np.abs( InputData.genPos - testSite )
 
@@ -393,7 +455,14 @@ def calcBaller(window_indice, testSite, InputData, NeutralSFS, NormalizedBetaBin
 		subwindow_indice = list( set(window_indice) & set(effective_indice) )
 		if len(subwindow_indice) == 0:
 			continue
+		#make sure the indice are integer
+		#subwindow_indice = list(map(int, subwindow_indice))
+		#try:
 		subset_alphas = alphas[subwindow_indice]
+		#except Exception as e:
+		#	print(e)
+		#	print(subwindow_indice)
+		#	sys.exit()
 		
 		#extract proportion of samples with size n
 		prop_sampSize = NeutralSFS.propSizes[ subwindow_indice ]
@@ -411,7 +480,9 @@ def calcBaller(window_indice, testSite, InputData, NeutralSFS, NormalizedBetaBin
 					assert len(Neut_probs) == len(Sel_probs)
 					assert len(subwindow_indice) == len(prop_sampSize)
 					assert len(Sel_probs) == len(prop_sampSize)
-				except:
+					assert len(subwindow_indice) < InputData.numSites
+				except Exception as e:
+					print(e)
 					print(f'len(Neut_probs) = {len(Neut_probs)}, len(Sel_probs) = {len(Sel_probs)}, len(subwindow_indice) = {len(subwindow_indice)}, len(prop_sampSize) = {len(prop_sampSize)}.\nA = {A}, x = {x}, abeta = {abeta}.')
 					print(subwindow_indice, list(subwindow_indice), subwindow_indice[0], A, x, abeta)
 					sys.exit()
@@ -438,19 +509,20 @@ class Scan:
 
 	'''Perform the scan with fixed window size of w (bp), with step size s (bp).'''
 	def _fixSize_noCenter(self, InputData, NeutralSFS, NormalizedBetaBinom, Grids, outfile , w, s):
+		from math import floor
 		print(("writing output to %s" % (outfile)))
 		with open(outfile,'w') as scores:
 			scores.write('physPos\tgenPos\tCLR\tx_hat\ts_hat\tA_hat\tnSites\n')#\tnumSites
-			start = int( floor(2*float(position[0])/w)*(w/2) )
+			start = int( floor(2*float(InputData.position[0])/w) * (w/2) )
 			end = start + s ; midpos = start + s/2
-			start_i=0; end_i=0; pos_i=0
+			start_i = 0; end_i = 0; pos_i = 0
 			while midpos <= InputData.position[-1]:
 				#define the window
 				while InputData.position[start_i] < start:
 					start_i +=1 
 				while InputData.position[pos_i] < midpos:
 					pos_i += 1
-				while end_i < numSites:
+				while (end_i +1) < InputData.numSites:
 					if InputData.position[end_i] < end:
 						end_i += 1
 					else:
@@ -458,12 +530,12 @@ class Scan:
 				gen_site = midpos * InputData.Rrate
 				#in case of large genomics gap
 				if start_i >= end_i:
-					scores.write('%g\t%s\t0\tNA\tNA\t0\n' % (midpos, gen_site))#
+					scores.write('%d\t%g\t0\tNA\tNA\tNA\t0\n' % (midpos, gen_site))#
 					start+=s; midpos+=s; end+=s
 				else:
-					window_indice = np.arange(start_i, end_i+1)
+					window_indice = np.arange(start_i, end_i+1, dtype = int ) 
 					Tmax, xhat, aHat, Ahat, winSites = calcBaller(window_indice, gen_site, InputData, NeutralSFS, NormalizedBetaBinom, Grids)
-					scores.write( f'{midpos}\t{midpos * Rrate}\t{Tmax}\t{xhat}\t{aHat}\t{Ahat}\t{winSites}\n' )
+					scores.write( f'{midpos}\t{midpos * InputData.Rrate}\t{Tmax}\t{xhat}\t{aHat}\t{Ahat}\t{winSites}\n' )
 					#scores.write('%g\t%s\t%s\t%s\t%g\t%g\t%d\n' % (midpos, midpos*Rrate, Tmax, xhat, aHat, Ahat, winSites))#
 					#read in, take next step
 					start+=s; midpos+=s; end+=s 
@@ -481,10 +553,10 @@ class Scan:
 			while i < InputData.numSites:
 				testSite = InputData.position[i]
 				gen_site = InputData.genPos[i]
-				start =  max(0, testSite-r/2); end = min(testSite+r/2,position[-1])
+				start =  max(0, testSite-w/2); end = min(testSite+w/2, InputData.position[-1])
 				while InputData.position[start_i] < start:
 					start_i += 1
-				while end_i < numSites:
+				while end_i < InputData.numSites:
 					if InputData.position[end_i] < end:
 						end_i += 1
 					else:
@@ -494,8 +566,8 @@ class Scan:
 				except:
 					print(start, start_i, end, end_i)
 					sys.exit(1)
-				end_i = min(end_i, numSites-1)
-				window_indice = np.arange(start_i, end_i+1)
+				end_i = min(end_i, InputData.numSites-1)
+				window_indice = np.arange(start_i, end_i+1, dtype = int)
 				Tmax, xhat, aHat, Ahat, winSites = calcBaller(window_indice, gen_site, InputData, NeutralSFS, NormalizedBetaBinom, Grids)
 				scores.write( f'{testSite}\t{gen_site}\t{Tmax}\t{xhat}\t{aHat}\t{Ahat}\t{winSites}\n' )
 				i+=int(s)
@@ -506,14 +578,14 @@ class Scan:
 	def _siteBased(self, InputData, NeutralSFS, NormalizedBetaBinom, Grids, outfile , r, s):
 		print(("writing output to %s" % (outfile)))
 		with open(outfile,'w') as scores:
-			scores.write('physPos\tgenPos\tLR\tx_hat\ts_hat\tA_hat\tnSites\n')#\tnumSites
+			scores.write('physPos\tgenPos\tCLR\tx_hat\ts_hat\tA_hat\tnSites\n')#\tnumSites
 			i=0
 			while i < InputData.numSites:
 				testSite = InputData.genPos[int(i)]
 				phys_site = InputData.position[int(i)]
-				start_i = max(0, i-r) ; end_i = min(numSites,i+r+1)
-				window_indice = np.arange(start_i, end_i+1)
-				Tmax, xhat, aHat, Ahat, winSites = calcBaller(window_indice, gen_site, InputData, NeutralSFS, NormalizedBetaBinom, Grids)
+				start_i = max(0, i-r) ; end_i = min(InputData.numSites-1,i+r+1)
+				window_indice = np.arange(start_i, end_i+1, dtype = int)
+				Tmax, xhat, aHat, Ahat, winSites = calcBaller(window_indice, testSite, InputData, NeutralSFS, NormalizedBetaBinom, Grids)
 				scores.write( f'{phys_site}\t{testSite}\t{Tmax}\t{xhat}\t{aHat}\t{Ahat}\t{winSites}\n' )
 				i+=s
 		scores.close()
@@ -529,7 +601,7 @@ class Scan:
 			while i < InputData.numSites:
 				testSite = InputData.genPos[int(i)]
 				phys_site = InputData.position[int(i)]
-				Tmax, xhat, aHat, Ahat, winSites = calcBaller(np.arange(InputData.numSites), testSite, InputData, NeutralSFS, NormalizedBetaBinom, Grids)
+				Tmax, xhat, aHat, Ahat, winSites = calcBaller(np.arange(InputData.numSites, dtype = int), testSite, InputData, NeutralSFS, NormalizedBetaBinom, Grids)
 				scores.write( f'{phys_site}\t{testSite}\t{Tmax}\t{xhat}\t{aHat}\t{Ahat}\t{winSites}\n' )
 				i+=int(s)
 		scores.close()
@@ -543,7 +615,7 @@ class Scan:
 				print('Please set a window width in nt with \"-w\" or \"--window\" command.')
 				sys.exit()
 			if not phys:
-				print(f'Please make sure to use physical positions as coordinates if fixed-length windows are chosen (--fixSize). Scan will continue with physical positions with a rec rate of {InputeData.Rrate} cM/nt.')
+				print(f'Please make sure to use physical positions as coordinates if fixed-length windows are chosen (--fixSize). Scan will continue with physical positions with a rec rate of {InputData.Rrate} cM/nt.')
 				phys = True
 				#sys.exit()
 			if noCenter:
@@ -590,24 +662,37 @@ def getConfig(infile,configfile):
 	print('Done')
 
 '''#generate spectrum file given the concatenated input'''
-def getSpect(infile,spectfile,MAF=False):
-	Spect={}; numSites=0; translate = False
+def getSpect(infile, spectfile, MAF, nosub):
+	Spect={}; numSites=0; translate = False; skip_report = False
 	with open(infile,'r') as sites:
 		l=next(sites)
 		for l in sites:
 			(x,n)=[ int(i) for i in l.strip().split('\t')[2:] ]
+
 			if MAF:
 				try:
 					assert x <= n/2
 				except:
 					if not translate:
-						print(f'Input data includes non-MAF site/s (frequency >= 0.5) despite choosing to use B_2maf (with --MAF). These frequencies will be folded for following analyses.')
+						print(f'Input data includes non-MAF site/s (frequency >= 0.5) despite choosing to use B_maf (with --MAF). These frequencies will be folded for following analyses.')
 						translate = True
 					x = n - x
 				x = min(x, n-x)
 			elif x==0:
 				print('Please make sure the input has derived allele frequency. Sites with 0 observed allele count (k=0) should not be included.\n')
 				sys.exit()
+			# assume by this point the input is guaranteed to have either DAF or MAF
+			# skip substitution
+			if nosub:
+				try:
+					assert x != (n * (1-MAF))
+					#print(x, n, MAF, n*(1-MAF) )
+				except:
+					if not skip_report:
+						print(f'Input includes substitutions despite choosing to use B_0 or B_0maf (with --noSub). These sites will not be accounted for.')
+						skip_report = True
+					#print('skipping...')
+					continue
 
 			if (x,n) in Spect:
 				Spect[(x,n)] += 1
@@ -627,22 +712,27 @@ usage='python {} -i <input file> -o <output file> --spect <spect/config file> [-
 '''
 def main():
 	import argparse
-	#parsing arguments
+	# parsing arguments
 	parser = argparse.ArgumentParser()
+
+	# basic file paths
 	parser.add_argument('-i','--input', dest='infile', help = 'Path and name of your input file.\n', required=True)
 	parser.add_argument('-o','--output', dest='outfile', help = 'Path and name of your output file.\n')
 	parser.add_argument('--spect',dest='spectfile', help = 'Path and name of the allele frequency spectrum file or configuration file.\n', required=True)
 	parser.add_argument('--minCount', dest='minCount', default = 1, help = 'If rare variants are removed from the input, please provide the smallest allele count included in the input. Default value is 1.')
 
+	# get helper files
 	parser.add_argument('--getSpect', dest='getSpec', action='store_true', default=False, help='Option to generate frequency spectrum file from the concatenated input file. Use \"-i\" and \"--spect\" commands to provide names and paths to input and output files, respectively. Indicate the input type with \"--MAF\".\n')
 	parser.add_argument('--getConfig', dest='getConfig', action='store_true', default=False, help='Option to generate configuration file from the concatenated input file. Use \"-i\" and \"--spect\" commands to provide names and paths to input and output files, respectively.\n\n')
 
-	parser.add_argument('--noFreq', dest='nofreq', action='store_true', default=False, help = 'Option to compute B_1 statistic and ignore allele frequency information (if given). All polymorphic sites (non-zero counts) will be considered as equivalent. Substitutions should be represented as having zero count in the input.')
-	#deprecated --noSub bc B0 do not perform well with betabinomial
-	#parser.add_argument('--noSub', dest='nosub', action='store_true', default=False, help = 'Option to not include substitution in input data.')
-	parser.add_argument('--MAF', dest='MAF', action='store_true', default=False, help = 'Option to compute B_2maf statistic and use minor allele frequency instead of polarized allele frequency (if given). The latter is default (B_2 statisitc).')
+	# choose type of selection
 	parser.add_argument('--findBal',dest='bal', action='store_true', default=False, help="Option to only look for footprints of balancing selection.\n")
 	parser.add_argument('--findPos',dest='pos', action='store_true', default=False, help="Option to only look for footprints of positive selection.\n")
+
+	# choose stat to run
+	parser.add_argument('--noFreq', dest='nofreq', action='store_true', default=False, help = 'Option to compute B_1 statistic and ignore allele frequency information (if given). All polymorphic sites (non-zero counts) will be considered as equivalent. Substitutions should be represented as having zero count in the input.')
+	parser.add_argument('--noSub', dest='nosub', action='store_true', default=False, help = 'Option to not include substitution in input data. B_0 or B_0maf will be computed.')
+	parser.add_argument('--MAF', dest='MAF', action='store_true', default=False, help = 'Option to compute B_2maf statistic and use minor allele frequency instead of polarized allele frequency (if given). The latter is default (B_2 statisitc).')
 
 	#args concerning recombination rate / genetic map
 	parser.add_argument('--usePhysPos', action='store_true', dest = 'phys', default = False, help = 'Option to use physical positions instead of genetic positions (in cM). Default is using genetic positions.\n')
@@ -651,7 +741,7 @@ def main():
 	#args to customize sliding windows
 	parser.add_argument('--fixWinSize', action='store_true', dest = 'size', default = False, help = 'Option to fix the size (in nt) of sliding windows during scan. When true, please also provide the length of window in neucleotide (nt) with \"-w\" or \"--window\" command.\n')
 	parser.add_argument('-w','--window', dest='w', type = int, default=0, help='Number of sites flanking the test locus on either side. When choose to fix window size (\"--fixSize\"), input the length of window in bp.\n')
-	parser.add_argument('--noCenter', action='store_true', dest='noCenter', default=False, help = 'Option to have the scanning windows not centered on informative sites. Require that the window size (\"-w\") in physical positions (\"--physPos\") is provided. Default is True.\n')
+	parser.add_argument('--noCenter', action='store_true', dest='noCenter', default=False, help = 'Option to have the scanning windows not centered on informative sites. Require that the window size (\"-w\") in physical positions (\"--usePhysPos\") is provided. Default is True.\n')
 	parser.add_argument('-s','--step', dest='step', type = float, default=1, help='Step size in bp (when using \"--noCenter\") or the number of informative sites. Default value is one site or one nucleotide.\n\n')
 
 	#args to modify search grids
@@ -671,7 +761,7 @@ def main():
 	if opt.getSpec:
 		print('You\'ve chosen to generate site frequency spectrum...')
 		print(('Concatenated input: %s \nSpectrum file: %s' % (opt.infile, opt.spectfile )))
-		getSpect(opt.infile, opt.spectfile, opt.MAF)
+		getSpect(opt.infile, opt.spectfile, opt.MAF, opt.nosub)
 		sys.exit()
 	elif opt.getConfig:
 		print('You\'ve chosen to generate the substitution-polymorphism configuration...')
@@ -682,14 +772,14 @@ def main():
 	#read & save input data
 	print( f"\n{datetime.now()}. Reading input from {opt.infile}" )
 	
-	data = InputData(opt.infile, opt.nofreq, opt.MAF, opt.minCount, phys=opt.phys, Rrate=opt.Rrate)
+	data = InputData(opt.infile, opt.nofreq, opt.MAF, opt.nosub, opt.minCount, phys=opt.phys, Rrate=opt.Rrate)
 
 	##read helper files & initialize
-	Neutral =  NeutralSFS(opt.spectfile, opt.nofreq, opt.MAF)
+	Neutral =  NeutralSFS(opt.spectfile, opt.nofreq, opt.MAF, opt.nosub)
 
 	print( f'\n{datetime.now()}. Initializing...')
 	print('Retrieving per-site neutral probabilities...')
-	Neutral.get_neut_probs(data, opt.nofreq, opt.MAF)
+	Neutral.get_neut_probs(data)
 
 	#generate the grids to optimize over/with
 	grid = Grids(opt.x, opt.abeta, opt.bal, opt.pos, opt.seqA, opt.listA)
@@ -698,7 +788,7 @@ def main():
 	print('\n \t A= '+', '.join([str(A) for A in grid.A]) ) 
 
 	#pre-compute per-site probs across the grids for mixing later
-	Sel_Probs = NormalizedBetaBinom(data, grid, opt.nofreq, opt.MAF)
+	Sel_Probs = NormalizedBetaBinom(data, grid, opt.nofreq, opt.MAF, opt.nosub)
 
 	#start writing output
 	print(("\n%s. Start computing likelihood raito..." %(datetime.now())))
