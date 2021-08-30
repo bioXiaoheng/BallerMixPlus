@@ -783,7 +783,7 @@ def main():
 
 	#generate the grids to optimize over/with
 	grid = Grids(opt.x, opt.abeta, opt.bal, opt.pos, opt.seqA, opt.listA)
-	print('\nOptimizing over x= '+', '.join([str(x) for x in grid.x]) )
+	print('\nOptimizing over x= '+', '.join(['%g' % (x) for x in grid.x]) )
 	print('\n \t alpha= '+', '.join([str(a) for a in grid.abeta]) ) 
 	print('\n \t A= '+', '.join([str(A) for A in grid.A]) ) 
 
