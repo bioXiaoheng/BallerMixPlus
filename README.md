@@ -29,6 +29,18 @@ To install `BalLeRMix+`, simply navigate to your working directory and clone thi
      git clone https://github.com/bioXiaoheng/BallerMixPlus.git
 
 The current release supports Python version 3.6 and above, and needs to have numpy (>=1.19.1) and scipy (>=1.5.0) installed. 
+<details open>
+ <summary>Commands to install requirements:</summary>
+ 
+ ```
+ # navigate to the cloned repository
+ cd BallerMixPlus/
+  
+ # check for required packages
+ pip install -r requirements.txt
+ ```
+  
+</details>
 
 ### 1. Quick start and examples
 To run the program, the user can build commands based on `python BalLeRMix+_v1.py -i <input file> [other arguments]`, with no particular order required for each argument. In particular, useful argument combinations are
@@ -51,9 +63,6 @@ There are two examples in `test/` folder, including their input files as well as
   <summary>Click to check sample commands</summary>
   
 ```
-#navigate to the cloned repository
-cd BallerMixPlus/
-
 # generate helper file for B1
 python BalLeRMix+_v1.py -i test/HC_CEU_Neut_Concatenated-DAF.txt --getConfig --spect test_config.txt
 
@@ -106,7 +115,9 @@ The output should be close, if not identical, to `test/output/Example2_B0maf_1kb
 ### 2. Input and helper files
 <details open>
 <summary></summary>
-    The input file should have four columns, presenting physical positions, genetic positions, number of derived (or minor) alleles observed, and total number of alleles observed (*i.e.* sample size). This file should be tab-delimited and should have a header, *e.g.*: 
+    The input file should have four columns, presenting physical positions, genetic positions, number of derived (or minor) alleles observed, and total number of alleles observed (*i.e.* sample size). We ask that a sample size be provided for each locus so that loci with missing data (and hence a difference sample size) can be better accounted for. Meanwhile, all (x,n) combinations in your input must also exist in the helper file. 
+  
+  The input file should be tab-delimited and should have a header, *e.g.*: 
 
   > physPos|genPos|x|n    
   > :-----:|:-----:|:-----:|:-----:    
