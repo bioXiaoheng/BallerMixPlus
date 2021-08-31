@@ -1,5 +1,5 @@
 '''
-This script compute the B_1, B_2, and B_2maf statistics described in Cheng and DeGiorgio (2021) for jointly detecting both balancing selection and positive selection.
+This script compute the B_1, B_2, B_2maf, B_0, and B_0maf statistics described in Cheng and DeGiorgio (2021) for jointly detecting both balancing selection and positive selection.
 '''
 import sys, os, re
 from datetime import datetime
