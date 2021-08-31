@@ -9,7 +9,7 @@ In BalLeRMix+, we introduce the optional `--findPos` and `--findBal`, as well as
 
 To help visualize the output, we also added an R script in the `test/` folder in case you need. 
 
-Note that BalLeRMix+ does not consider multi-allelic balancing selection.
+Note that BalLeRMix+ does not consider multi-allelic balancing selection as does BalLeRMix_v2.2.
 
 ------
 
