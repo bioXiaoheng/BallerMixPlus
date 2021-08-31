@@ -47,6 +47,9 @@ cat input_chr*.txt | awk '(NR == 1 || $1 != "position")' > Concatenated_input_fo
 ```
 
 There are two examples in `test/` folder, including their input files as well as some helper files. To obtain helper files from the concatenated input (`test/HC_CEU_Neut_Concatenated-DAF.txt`), you can run:
+<details open>
+  <summary>Click to check sample commands</summary>
+  
 ```
 #navigate to the cloned repository
 cd BallerMixPlus/
@@ -66,7 +69,10 @@ python BalLeRMix+_v1.py -i test/HC_CEU_Neut_Concatenated-DAF.txt --getSpect --no
 # generate helper file for B0maf
 python BalLeRMix+_v1.py -i test/HC_CEU_Neut_Concatenated-DAF.txt --getSpect --noSub --MAF --spect test_MFS-noSub.txt
 ```
-The resulting files should be the same as `test/HC_CEU_Neut_config_for_B1.txt`, `test/HC_CEU_Neut_DAF_spect_for_B2.txt`, and `test/HC_CEU_Neut_MAF_spect_for_B2maf.txt`, respectively.
+  
+</details>
+
+The resulting files should be the same as `test/HC_CEU_Neut_config_for_B1.txt`, `test/HC_CEU_Neut_DAF_spect_for_B2.txt`, `test/HC_CEU_Neut_MAF_spect_for_B2maf.txt`, `test/HC_CEU_Neut_DAF-noSub_spect_for_B0.txt`, and `test/HC_CEU_Neut_MAF-noSub_spect_for_B0maf.txt`, respectively.
 
 To run B<sub>1</sub>, B<sub>2</sub>, and B<sub>2,MAF</sub>, respectively, on the first example:
 ```
@@ -80,9 +86,11 @@ python BalLeRMix+_v1.py -i test/Example1_fullSweep_200kya_DAF.txt -o testout_ex1
 python BalLeRMix+_v1.py -i test/Example1_fullSweep_200kya_MAF.txt -o testout_ex1_B2maf.txt --MAF --spect test/HC_CEU_Neut_MAF_spect_for_B2maf.txt
 
 ```
-You will find that the output should be close, if not identical, to the files `test/output/Example1_B1.txt`, `test/output/Example1_B2.txt`, and `test/output/Example1_B2maf.txt`, respectively. To visualize them, you can try:
+You will find that the output should be close, if not identical, to the files `test/output/Example1_B1.txt`, `test/output/Example1_B2.txt`, and `test/output/Example1_B2maf.txt`, respectively. Example1 is simulated to have undergone a selective sweep of *s*=0.01. Because *B<sub>0</sub>* and *B<sub>0,MAF</sub>* have little power for positive selection, we do not recommend the user to use them for inferring positive selection. 
+
+To visualize the *B<sub>1</sub>*, *B<sub>2</sub>*, and *B<sub>2,MAF</sub>* scores, you can try:
 ```
-Rscript test/plotScores.r <output from BalLeRMix+_v1.py> <desired image name>
+Rscript test/plotScores.r <output from BalLeRMix+_v1.py> <image name with suffix>
 ```
 You should be able to generate images resembling `test/ScorePlot_example1_B2.png`. Note that this R script requires the `ggplot2` package.
 
@@ -98,46 +106,46 @@ The output should be close, if not identical, to `test/output/Example2_B0maf_1kb
 ### 2. Input and helper files
 <details open>
 <summary></summary>
-  The input file should have four columns, presenting physical positions, genetic positions, number of derived (or minor) alleles observed, and total number of alleles observed (*i.e.* sample size). This file should be tab-delimited and should have a header, *e.g.*: 
-  
-> physPos|genPos|x|n    
-> :-----:|:-----:|:-----:|:-----:    
-> 16|0.000016|50|50    
-> 35|0.000035|12|50   
-> ...
-  
-Note that for B<sub>2,MAF</sub>, it is recommended to only have minor allele counts in the data. If, however, the user choose to run it on derived allele counts, as long as `--MAF` argument is given, the script will automatically fold the allele count in your data. For B<sub>1</sub>, the script will read all loci with allele counts different from their sample sizes (*i.e.*, x != n ) as polymorphisms, and all that has identical values to the samples sizes as substitution (also known as fixed differences).
-  
-In addition to the allele count input file, the user also need to provide one helper file that records the genome-wide variation level. In particular:
+    The input file should have four columns, presenting physical positions, genetic positions, number of derived (or minor) alleles observed, and total number of alleles observed (*i.e.* sample size). This file should be tab-delimited and should have a header, *e.g.*: 
 
-For B<sub>2</sub> and B<sub>2,MAF</sub> statistics, a site frequency spectrum file is needed, and should be __*tab-delimited*__ and __*without header*__, *e.g.*:
-> \<k\>|\<sample size n\>|\<proportion in the genome\>    
-> :-----:|:-----:|-----
-> 1|50|0.03572
-> 2|50|0.02024
-> ...
-  
-For B<sub>1</sub>, the helper file (also tab-delimited) records the genome-wide polymorphism/substitution ratio, __*without header*__, *e.g.*:
+  > physPos|genPos|x|n    
+  > :-----:|:-----:|:-----:|:-----:    
+  > 16|0.000016|50|50    
+  > 35|0.000035|12|50   
+  > ...
 
-> \<sample size n\> | \<\% of substitutions\> | \<\% of polymorphisms\>  
-> :-----:|:-----:|:-----:   
-> 50  |  0.7346  |  0.2654    
+  Note that for B<sub>2,MAF</sub>, it is recommended to only have minor allele counts in the data. If, however, the user choose to run it on derived allele counts, as long as `--MAF` argument is given, the script will automatically fold the allele count in your data. For B<sub>1</sub>, the script will read all loci with allele counts different from their sample sizes (*i.e.*, x != n ) as polymorphisms, and all that has identical values to the samples sizes as substitution (also known as fixed differences).
 
-The `BalLeRMix+_v1.py` program can help generate helper files from the concatenated input files. 
-For site frequency spectrum: 
+  In addition to the allele count input file, the user also need to provide one helper file that records the genome-wide variation level. In particular:
 
-    python BalLeRMix+_v1.py -i <concatenated input file> --getSpect --spect <spectrum file name>
-  
-For minor allele frequency spectrum:
-  
-    python BalLeRMix+_v1.py -i <concatenated input file> --getSpect --MAF --spect <spectrum file name>
-  
-For polymorphism-substitution configuration file:
-  
-    python BalLeRMix+_v1.py -i <concatenated input file> --getConfig --spect <config file name>
+  For B<sub>2</sub> and B<sub>2,MAF</sub> statistics, a site frequency spectrum file is needed, and should be __*tab-delimited*__ and __*without header*__, *e.g.*:
+  > \<k\>|\<sample size n\>|\<proportion in the genome\>    
+  > :-----:|:-----:|-----
+  > 1|50|0.03572
+  > 2|50|0.02024
+  > ...
+
+  For B<sub>1</sub>, the helper file (also tab-delimited) records the genome-wide polymorphism/substitution ratio, __*without header*__, *e.g.*:
+
+  > \<sample size n\> | \<\% of substitutions\> | \<\% of polymorphisms\>  
+  > :-----:|:-----:|:-----:   
+  > 50  |  0.7346  |  0.2654    
+
+  The `BalLeRMix+_v1.py` program can help generate helper files from the concatenated input files. 
+  For site frequency spectrum: 
+
+      python BalLeRMix+_v1.py -i <concatenated input file> --getSpect --spect <spectrum file name>
+
+  For minor allele frequency spectrum:
+
+      python BalLeRMix+_v1.py -i <concatenated input file> --getSpect --MAF --spect <spectrum file name>
+
+  For polymorphism-substitution configuration file:
+
+      python BalLeRMix+_v1.py -i <concatenated input file> --getConfig --spect <config file name>
 
 </details>
-  
+
 ### 3. Running the *B* statistics 
 <details open>
 <summary></summary>
