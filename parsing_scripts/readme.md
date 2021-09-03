@@ -64,8 +64,10 @@ Notes:
  
  <details open>
  <summary>Here is how I prepared the downloaded files into these example files.</summary>
- ```Bash
- # Paths to the files are ommitted for brevity. In reality, for the commands below to work, all files need to be in the same directory
+
+```Bash
+ # Paths to the files are ommitted for brevity.
+ # In reality, for the commands below to work, all files need to be in the same directory
  
  # truncate vcf, keep the first 2000 variant calls
  zcat ALL.chr22.phase3_shapeit2_mvncall_integrated_v5b.20130502.genotypes.vcf.gz | head -2252 | gzip > Example3_first2000var.chr22.phase3_shapeit2_mvncall_integrated_v5b.20130502.genotypes.vcf.gz
@@ -84,6 +86,6 @@ Notes:
  endpos=$( zcat ALL.chr22.phase3_shapeit2_mvncall_integrated_v5b.20130502.genotypes.vcf.gz | cut -f 2 | head -2252 | tail -1 )
  ## truncate
  cat hg19/YRI/YRI_recombination_map_hapmap_format_hg19_chr_22.txt | awk -v e=$endpos '(NR == 1 || $2 <= e)' > Example3_YRI_0-1622e4_rec_map_hapmap_format_hg19_chr22.txt
- ```
+```
  
  </details>
