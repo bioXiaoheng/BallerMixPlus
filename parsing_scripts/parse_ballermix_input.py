@@ -623,13 +623,13 @@ def main():
 	parser = argparse.ArgumentParser()
 
 	# file paths
-	parser.add_argument('--vcf', dest = 'vcffile', help = 'Path and name of the vcf file.\n', required = True)
-	parser.add_argument('--ID_list', dest = 'pop_list', default = None, help = 'Path and name to the file containing list of sample IDs (identical to their column names in vcf) to be counted, separated by comma. If not provided, all samples in the vcf will be counted.\n', required = True)
+	parser.add_argument('--vcf', dest = 'vcffile', help = 'Path and name of the vcf file. Format can be either .vcf or .vcf.gz.\n', required = True)
 	parser.add_argument('-c', '--chr', dest = 'ch', help = 'ID of the chromosome. E.g. 2a for chr2a, 12 for chr12, etc.\n', required = True)
+	parser.add_argument('-o','--output', dest = 'outfile', help = 'Path and name of the output file.', required = True)
+	parser.add_argument('--ID_list', dest = 'pop_list', default = None, help = 'Path and name to the file containing list of sample IDs (identical to their column names in vcf) to be counted, separated by comma. If not provided, all samples in the vcf will be counted.\n')
 	parser.add_argument('--axt', dest = 'axtfile', default = None, help = 'Path and name of the sequence alignment (in .axt or .axt.gz) for calling substitution and polarizing the allele frequency. If not provided, then the output will only be applicable to B_0maf.')
 	parser.add_argument('--rec', dest = 'rec_rate', default = 1e-6, help = 'Recombination rate in cM/nt. Default value is 1e-6 cM/nt.')
 	parser.add_argument('--rec_map', dest = 'rec_map', default = None, help = 'Path and name of the recombination map (hapmap format) of the same sequence. If not provided, a uniform recombination rate will be applied with a default rate of 1e-6 cM/nt. Use \"--rec\" to specify another rate.')
-	parser.add_argument('-o','--output', dest = 'outfile', help = 'Path and name of the output file.', required = True)
 
 	
 	if len(sys.argv[1:]) == 0:
