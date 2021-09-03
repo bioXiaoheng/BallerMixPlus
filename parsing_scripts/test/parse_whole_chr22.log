@@ -1,0 +1,8 @@
+Thu Sep  2 22:00:13 2021 Parsing BalLeRMix input for B_2 with genetic positions matching the recombination map. Assume genomic regions not covered by the map to recombine at 1e-06 cM/nt.
+Loading the alignment for chr22...
+axt_lib takes memory 1342177368; aligned_pos list takes memory of 297842200.
+Skipping header.
+Data from 108 samples will be counted. The total number of samples in this vcf is 2504.
+End-of-file for the recombination map. Assume uniform rate of 1e-06 after 51241385.0.
+No more recorded positions.
+Thu Sep  2 22:07:38 2021 Parsing completed. Output file: testout_chr22_vcf_w_recmap_w_axt.txt Total time 445.29481267929077sec.
