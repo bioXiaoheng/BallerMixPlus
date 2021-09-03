@@ -48,6 +48,7 @@ optional arguments:
 Notes:
 * This script is only applicable to *diploid organisms with individual genotype calls*. While we understand that pooled-sequencing data is common for many non-model organisms, the algorithms behind polarizing alleles and matching recombination/genetic position are nonetheless the same. We hope this script can lend insight into the workflow or some of the algoritms, and the users are welcomed to copy or modify this script to best serve your data.
 * We understand that sometimes it is procedurally easier to merge samples from multiple populations for variant calling. Therefore, the VCF file here does not have to only contain samples from the population you want to examine. Instead, we invite users to provide a list of samples (matching their column names in the VCF) in your population along with the merged VCF. See `Example3_YRI_samples_1KG-v3.20130502.txt` for its format.
+* Note that some VCF files (but not all) contain information about the ancestral alleles ("AA"). This information can also be used to polarize allele frequency, but the current `parse_ballermix_input.py` script does not account for it yet.
 * When the AXT file is provided, only sites within sequences mapped in both genomes should be counted. For example, matches in `0 chr1 10918 11034 chrUn_NW_019934090v1 15192 15299 - 6550` or `15208 chr10_gl383543_fix 1 57120 chr10 18044152 18101342 + 5201976` will not be counted.
 * The table below shows what *B* statistics can be applied on the parsed data. Note that **input suitable for *B*<sub>2</sub> can be used to compute all other *B* variants too**.
  
@@ -89,3 +90,5 @@ Notes:
 ```
  
  </details>
+  
+
