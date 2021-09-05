@@ -152,11 +152,11 @@ def parse_vcf_w_recmap(chrom, vcffile, rec_map, rec_rate, outfile, pop_list):
 		# sanity check: make sure vcf and bed are on the same chromosome
 		try:
 			assert l[0] in {chrom, 'chr'+chrom }
-			assert int_regex.findall(ch)[0] == int_regex.findall(l[0])[0]
+			assert int_regex.findall(chrom)[0] == int_regex.findall(l[0])[0]
 		except Exception as e:
 			#print(ch, l[:5], type(ch), type(l[0]))
 			print('Please make sure the recombination map and vcf cover the same chromosome.')
-			print(e)
+			print(l[0], e)
 			sys.exit(1)
 
 		# only process bi-allelic SNPs
