@@ -91,4 +91,20 @@ Notes:
  
  </details>
   
+  To prepare these data into BalLeRMix-ready format, use the following command:
+  
+```Bash
+  # if you only have vcf available
+  ## indicate the chromosome id with -c/--chr
+  ## the vcf contain variant calls for all 2504 samples in 1KG project; the ID_list provides the sample IDs that should be included
+  python parse_ballermix_input.py --vcf Example3_first2000var.chr22.phase3_shapeit2_mvncall_integrated_v5b.20130502.genotypes.vcf.gz -c 22 --ID_list Example3_YRI_samples_1KG-v3.20130502.txt -o Example3_vcf-only_b0maf-ready.txt
+  
+  # if you also have recombination map
+  python parse_ballermix_input.py --vcf Example3_first2000var.chr22.phase3_shapeit2_mvncall_integrated_v5b.20130502.genotypes.vcf.gz -c 22 --ID_list Example3_YRI_samples_1KG-v3.20130502.txt --rec_map Example3_YRI_0-1622e4_rec_map_hapmap_format_hg19_chr22.txt -o Example3_vcf-plus-recmap_b0maf-ready.txt
+  
+  # if you don't have rec map, but do have pairwise alignment with a close outgroup (chimpanzee here)
+  ## the script assumes a uniform recombination rate of 1e-6 cM/nt. To specify another rate, use "--rec <rec rate in cM/nt>"
+  python parse_ballermix_input.py --vcf Example3_first2000var.chr22.phase3_shapeit2_mvncall_integrated_v5b.20130502.genotypes.vcf.gz -c 22 --ID_list Example3_YRI_samples_1KG-v3.20130502.txt --axt Example3_chr22_good.hg19.panTro6.net.axt.gz -o Example3_vcf-plus-axt_b2-ready.txt
+                                                                                                       
+```
 
