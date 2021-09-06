@@ -29,7 +29,7 @@ This folder contains example scripts for parsing empirical data into formats fit
  You will see
 
 ```
-usage: parse_ballermix_input.py [-h] --vcf VCFFILE -c CH -o OUTFILE [--ID_list POP_LIST] [--axt AXTFILE] [--rec REC_RATE] [--rec_map REC_MAP]
+usage: parse_ballermix_input.py [-h] --vcf VCFFILE -c CH -o OUTFILE [--ID_list POP_LIST] [--axt AXTFILE] [--rec_rate REC_RATE] [--rec_map REC_MAP]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -41,7 +41,7 @@ optional arguments:
                         separated by comma. If not provided, all samples in the vcf will be counted.
   --axt AXTFILE         Path and name of the sequence alignment (in .axt or .axt.gz) for calling substitution and polarizing the allele
                         frequency. If not provided, then the output will only be applicable to B_0maf.
-  --rec REC_RATE        Recombination rate in cM/nt. Default value is 1e-6 cM/nt.
+  --rec_rate REC_RATE        Recombination rate in cM/nt. Default value is 1e-6 cM/nt.
   --rec_map REC_MAP     Path and name of the recombination map (hapmap format) of the same sequence. If not provided, a uniform recombination
                         rate will be applied with a default rate of 1e-6 cM/nt. Use "--rec" to specify another rate.
 ```
@@ -54,10 +54,10 @@ Notes:
  
  VCF | AXT | Recombination Map | Applicable *B* variant
  :---:|:---:|:---:|:---:
- given |  |  | *B*<sub>0,MAF</sub>
- given |  | given | *B*<sub>0,MAF</sub>
- given | given | | *B*<sub>2</sub>
- given | given | given | *B*<sub>2</sub>
+  :heavy_check_mark: |  |  | *B*<sub>0,MAF</sub>
+ :heavy_check_mark: |  | :heavy_check_mark: | *B*<sub>0,MAF</sub>
+ :heavy_check_mark: | :heavy_check_mark: | | *B*<sub>2</sub>
+ :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | *B*<sub>2</sub>
 
 #### 1.1 Walking through Example 3
 
@@ -91,4 +91,26 @@ Notes:
  
  </details>
   
+  To prepare these data into BalLeRMix-ready format, use the following command:
+  
+```Bash
+  # if you only have vcf available
+  ## indicate the chromosome id with -c/--chr
+  ## the vcf contain variant calls for all 2504 samples in 1KG project; the ID_list provides the sample IDs that should be included
+  ## assume a uniform recombination rate of 1.25e-6
+  python parse_ballermix_input.py --vcf Example3_first2000var.chr22.phase3_shapeit2_mvncall_integrated_v5b.20130502.genotypes.vcf.gz -c 22 --ID_list Example3_YRI_samples_1KG-v3.20130502.txt --rec_rate 1.25e-6 -o Example3_vcf-only_rec1.25e-6_b0maf-ready.txt
+  
+  # if you also have recombination map
+  python parse_ballermix_input.py --vcf Example3_first2000var.chr22.phase3_shapeit2_mvncall_integrated_v5b.20130502.genotypes.vcf.gz -c 22 --ID_list Example3_YRI_samples_1KG-v3.20130502.txt --rec_map Example3_YRI_0-1622e4_rec_map_hapmap_format_hg19_chr22.txt -o Example3_vcf-plus-recmap_b0maf-ready.txt
+  
+  # if you don't have rec map, but do have pairwise alignment with a close outgroup (chimpanzee here)
+  ## assume a uniform recombination rate of 1.25e-6 cM/nt
+  python parse_ballermix_input.py --vcf Example3_first2000var.chr22.phase3_shapeit2_mvncall_integrated_v5b.20130502.genotypes.vcf.gz -c 22 --ID_list Example3_YRI_samples_1KG-v3.20130502.txt --axt Example3_chr22_good.hg19.panTro6.net.axt.gz --rec_rate 1.25e-6 -o Example3_vcf-plus-axt_rec1.25e-6_ballermix-ready.txt
 
+  # if you have both rec map and pairwise alignment
+  python parse_ballermix_input.py --vcf Example3_first2000var.chr22.phase3_shapeit2_mvncall_integrated_v5b.20130502.genotypes.vcf.gz -c 22 --ID_list Example3_YRI_samples_1KG-v3.20130502.txt --axt Example3_chr22_good.hg19.panTro6.net.axt.gz --rec_map Example3_YRI_0-1622e4_rec_map_hapmap_format_hg19_chr22.txt -o Example3_vcf-axt-recmap_ballermix-ready.txt
+                                                                                                         
+  # note that "--rec_map" and "--rec_rate" are not mutually exclusive. When a map is provided, genomic regions not covered by the map are assumed to have a recombination rate specified by "--rec_rate". If it's not specified, the default is 1e-6
+  python parse_ballermix_input.py --vcf Example3_first2000var.chr22.phase3_shapeit2_mvncall_integrated_v5b.20130502.genotypes.vcf.gz -c 22 --ID_list Example3_YRI_samples_1KG-v3.20130502.txt --axt Example3_chr22_good.hg19.panTro6.net.axt.gz --rec_map Example3_YRI_0-1622e4_rec_map_hapmap_format_hg19_chr22.txt --rec_rate 1.25e-6 -o Example3_vcf-axt-recmap_rec1.25e-6_ballermix-ready.txt
+```
+You can compare your output files from these commands with the corresponding files in `test_output/` folder.
