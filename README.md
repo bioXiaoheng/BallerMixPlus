@@ -175,9 +175,10 @@ To perform B<sub>1</sub> scans on your input data, use
 </details>
   
 ### 4. Customizing the sliding window for your scan
-<details open>
-<summary></summary>
-All arguments besides the aforementioned ones are for customizing the scan. Their usage is largely based on the previous `BalLeRMix` (read its detailed manual [here](https://github.com/bioXiaoheng/BalLeRMix/blob/master/software/BalLeRMix_manual.pdf)). Note that they are not necessary for the scan to complete. In general, they can be grouped into the following three categories:
+  
+All arguments besides the aforementioned ones are for customizing the scan. Their usage is largely based on the previous `BalLeRMix` (find out more in its detailed manual [here](https://github.com/bioXiaoheng/BalLeRMix/blob/master/software/BalLeRMix_manual.pdf) ). Note that these arguments are not necessary for the scan to complete. 
+  <details open>
+    <summary>In general, they can be grouped into the following three categories:</summary>
 
 - `[--usePhysPos] [--rec RRATE] `:
 
@@ -198,5 +199,5 @@ All arguments besides the aforementioned ones are for customizing the scan. Thei
  |Fixed sequence length (nt) | Informative sites  |`--fixWinSize` `-w <nt>` `[-s <sites>]` `[--usePhysPos]`| `[--rec <cM/nt>]`     |
  |Fixed sequence length (nt) |Evenly-spaced arbitrary positions|`--fixWinSize` `--noCenter``-w <nt>` `-s <nt>` `[--usePhysPos]`| `[--rec <cM/nt>]`     |
  |Fixed number of informative sites| Informative sites  |`-w <sites in radius>` `-s <sites per step>`| `[--usePhysPos]` `[--rec <cM/nt>]`|
-  
-</details>
+
+</details>  
