@@ -58,11 +58,15 @@ Note that when generating helper files, the input must be concatenated from all 
 cat input_chr*.txt | awk '(NR == 1 || $1 != "position")' > Concatenated_input_for_helper_file.txt
 ```
 
-There are two examples in `test/` folder, including their input files as well as some helper files. To obtain helper files from the concatenated input (`test/HC_CEU_Neut_Concatenated-DAF.txt`), you can run:
+There are two examples in `test/` folder, including their input files as well as some helper files. Both examples are simulated using [SLiM3.3](https://github.com/MesserLab/SLiM) (Haller & Messer 2019), and their allele frequencies are polarized by the sequence from an outgroup that diverged from the main population 5 million years ago (similar to the human-chimpanzee divergence). Example 1 is an 100kb sequence evolving under the CEU demography (inferred by [SMC++](https://github.com/terhorst/psmcpp); Terhorst *et al.* 2017), carrying a *de novo* beneficial mutation that occurred 10,000 generations ago, with a selective advantage of *s*=0.01. Example 2 is a 50kb sequence carrying an ancient locus under over-dominance balancing selection (*s*=0.001, dominance *h*=20) occuring 5 million years before the outgroup diverges. 
+
+Note that the sequence in Example 2 actually evolved under a constant population size and, in reality, should not use the same set of helper files as does Example 1. However, because 1) footprints of ancient balancing selection are in general not sensitive to recent population size changes, and 2) the two examples here are only for demonstration purpose, we will use the set of helper files for Example 1 here throughout for convenience.
+
+To obtain helper files from the concatenated input (`test/HC_CEU_Neut_Concatenated-DAF.txt`, concatenated from all the replicates evoling neutrally under the same demographic history as Example 1), you can run:
 <details open>
   <summary>Click to check sample commands</summary>
   
-```
+```Bash
 # generate helper file for B1
 python BalLeRMix+_v1.py -i test/HC_CEU_Neut_Concatenated-DAF.txt --getConfig --spect test_config.txt
 
@@ -83,8 +87,10 @@ python BalLeRMix+_v1.py -i test/HC_CEU_Neut_Concatenated-DAF.txt --getSpect --no
 
 The resulting files should be the same as `test/HC_CEU_Neut_config_for_B1.txt`, `test/HC_CEU_Neut_DAF_spect_for_B2.txt`, `test/HC_CEU_Neut_MAF_spect_for_B2maf.txt`, `test/HC_CEU_Neut_DAF-noSub_spect_for_B0.txt`, and `test/HC_CEU_Neut_MAF-noSub_spect_for_B0maf.txt`, respectively.
 
-To run B<sub>1</sub>, B<sub>2</sub>, and B<sub>2,MAF</sub>, respectively, on the first example:
-```
+<details open>
+  <summary>To run B<sub>1</sub>, B<sub>2</sub>, and B<sub>2,MAF</sub>, respectively, on the first example:</summary>
+
+```Bash
 #run B1
 python BalLeRMix+_v1.py -i test/Example1_fullSweep_200kya_DAF.txt -o testout_ex1_B1.txt --noFreq --spect test/HC_CEU_Neut_config_for_B1.txt
 
@@ -95,19 +101,28 @@ python BalLeRMix+_v1.py -i test/Example1_fullSweep_200kya_DAF.txt -o testout_ex1
 python BalLeRMix+_v1.py -i test/Example1_fullSweep_200kya_MAF.txt -o testout_ex1_B2maf.txt --MAF --spect test/HC_CEU_Neut_MAF_spect_for_B2maf.txt
 
 ```
+  
+</details>
+
 You will find that the output should be close, if not identical, to the files `test/output/Example1_B1.txt`, `test/output/Example1_B2.txt`, and `test/output/Example1_B2maf.txt`, respectively. Example1 is simulated to have undergone a selective sweep of *s*=0.01. Because *B<sub>0</sub>* and *B<sub>0,MAF</sub>* have little power for positive selection, we do not recommend the user to use them for inferring positive selection. 
 
 To visualize the *B<sub>1</sub>*, *B<sub>2</sub>*, and *B<sub>2,MAF</sub>* scores, you can try:
-```
+
+```Bash
 Rscript test/plotScores.r <output from BalLeRMix+_v1.py> <image name.png>
 ```
+
 With the above command, you should be able to generate images resembling `test/ScorePlot_example1_B2.png`. Note that this R script requires the `ggplot2` package and will output images in PNG format.
 
 The same operations can be repeated on example 2, and you can check your output with `test/output/Example2_B1.txt`, `test/output/Example2_B2.txt`, and `test/output/Example2_B2maf.txt` accordingly.
 
 By default, the `BalLeRMix+_v1.py` script uses all informative sites provided in the input. With additional arguments, users can customize the size and centers of their sliding windows for the analyses. Details on these areguments are listed in section 4 As an example, one can run
-```
-# compute B0maf (--noSub --MAF) while using physical positions as coordinates (--usePhysPos), scan with sliding windows of a fixed physical size (--fixWinSize) of 1000 nt (-w 1000), centered on every other (--step 2) informative sites
+
+```Bash
+# compute B0maf (--noSub --MAF) while: 
+## using physical positions as coordinates (--usePhysPos) 
+## scan with sliding windows of a fixed physical size (--fixWinSize) of 1000 nt (-w 1000)
+## centered on every other (--step 2) informative sites
 python BalLeRMix+_v1.py --noSub --MAF --spect test/HC_CEU_Neut_MAF-nosub_spect_for_B0maf.txt -i test/Example2_balancing_10MYA_MAF_nosub.txt -o testout_B0maf_1kb-500b.txt --usePhysPos --fixWinSize -w 1000 --step 2  
 ```
 The output should be close, if not identical, to `test/output/Example2_B0maf_1kb-2sites.txt`.
