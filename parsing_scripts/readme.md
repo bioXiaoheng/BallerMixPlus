@@ -1,6 +1,6 @@
 ## Parsing empirical data for [BalLeRMix](https://github.com/bioXiaoheng/BalLeRMix) or BalLeRMix+ application
 
-This folder contains example scripts for parsing empirical data into formats fit for BalLeRMix and BalLeRMix+. Note that all scripts in this directory are mostly meant to examplify typical workflows and have *only been tested with human and great ape data* so far, so *please excercise caution* before using them.
+This folder contains example scripts for parsing empirical data into formats fit for `BalLeRMix` and `BalLeRMix+`. Note that all scripts in this directory are mostly meant to examplify typical workflows and have *only been tested with human and great ape data* so far, so *please excercise caution* before using them.
 
 ### 0. *What you need:* VCFs; *Bonus:* AXT and/or recombination map
  
