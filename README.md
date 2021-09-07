@@ -99,9 +99,9 @@ You will find that the output should be close, if not identical, to the files `t
 
 To visualize the *B<sub>1</sub>*, *B<sub>2</sub>*, and *B<sub>2,MAF</sub>* scores, you can try:
 ```
-Rscript test/plotScores.r <output from BalLeRMix+_v1.py> <image name with suffix>
+Rscript test/plotScores.r <output from BalLeRMix+_v1.py> <image name.png>
 ```
-You should be able to generate images resembling `test/ScorePlot_example1_B2.png`. Note that this R script requires the `ggplot2` package.
+With the above command, you should be able to generate images resembling `test/ScorePlot_example1_B2.png`. Note that this R script requires the `ggplot2` package and will output images in PNG format.
 
 The same operations can be repeated on example 2, and you can check your output with `test/output/Example2_B1.txt`, `test/output/Example2_B2.txt`, and `test/output/Example2_B2maf.txt` accordingly.
 
