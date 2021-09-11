@@ -31,14 +31,21 @@ To install `BalLeRMix+`, simply navigate to your working directory and clone thi
 The current release supports Python version 3.6 and above, and needs to have numpy (>=1.19.1) and scipy (>=1.5.0) installed. 
 <details open>
  <summary>Commands to install requirements:</summary>
- 
- ```
+  
+ The `requirements.txt` file allow `pip` (`pip 6` and above) to check whether your system already has the required packages installed, and if not, install them. Note that it doesn't check whether your python version meets the requirement. To check your python version, use `python --version` or `pip --version`.
+```Bash
  # navigate to the cloned repository
  cd BallerMixPlus/
   
  # check for required packages
  pip install -r requirements.txt
- ```
+```
+  Alternatively, you can also install the packages (of their latest version) manually through
+  
+```Bash
+ pip install numpy
+ pip install scipy
+```  
   
 </details>
 
