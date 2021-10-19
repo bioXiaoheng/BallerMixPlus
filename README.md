@@ -3,6 +3,9 @@
 
 This repository hosts the software package for BalLeRMix+, an extension of [BalLeRMix](https://github.com/bioXiaoheng/BalLeRMix) that can jointly detect recent positive selection and long-term balancing selection.  
 
+To cite this software:
+Xiaoheng Cheng, Michael DeGiorgio (2021) [BalLeRMix+: Mixture model approaches for robust joint identification of both positive selection and long-term balancing selection.](https://doi.org/10.1093/bioinformatics/btab720) *Bioinformatics* btab720
+
 ------
 
 In BalLeRMix+, we introduce the optional `--findPos` and `--findBal`, as well as `--fixAlpha <abeta>`, arguments to help specify the disperson parameter in beta-binomial distributions, with a value between 0 and 1 indicating positive selection, and a value larger than 1 indicating balancing selection. Based on feedback from BalLeRMix users, we also added a `--minCount` argument to indicate the smallest number of allele counts in the input data, in case the user chooses to remove rare variants from the data.
