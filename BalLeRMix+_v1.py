@@ -736,7 +736,7 @@ def main():
 
 	#args concerning recombination rate / genetic map
 	parser.add_argument('--usePhysPos', action='store_true', dest = 'phys', default = False, help = 'Option to use physical positions instead of genetic positions (in cM). Default is using genetic positions.\n')
-	parser.add_argument('--rec', dest='Rrate', default = 1e-6 , help='The uniform recombination rate in cM/nt. Default value is 1e-6 cM/nt. Only useful when choose to use physical positions as coordinates.\n\n')
+	parser.add_argument('--rec', dest='Rrate', default = 1e-6 , type = float, help='The uniform recombination rate in cM/nt. Default value is 1e-6 cM/nt. Only useful when choose to use physical positions as coordinates.\n\n')
 
 	#args to customize sliding windows
 	parser.add_argument('--fixWinSize', action='store_true', dest = 'size', default = False, help = 'Option to fix the size (in nt) of sliding windows during scan. When true, please also provide the length of window in neucleotide (nt) with \"-w\" or \"--window\" command.\n')
