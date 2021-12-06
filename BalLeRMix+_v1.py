@@ -24,12 +24,14 @@ class InputData:
 			self.count = np.array(self.count)
 			self.total = np.array(self.total)
 			self.genPos = np.array(self.genPos)
+			self.position = np.array(self.position)
 		else:
 			self.readCounts(infile, pos_type, Rrate)
 
 			self.count = np.array(self.count)
 			self.total = np.array(self.total)
 			self.genPos = np.array(self.genPos)
+			self.position = np.array(self.position)
 
 			_Bmaf = ['', 'MAF']   # s.t. _Bmaf[MAF] can be a nice suffix
 			_B02 = ['B_2', 'B_0']   # s.t. _B02[nosub] shows which gets computed
