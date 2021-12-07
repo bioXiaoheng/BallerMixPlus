@@ -95,7 +95,7 @@ python BalLeRMix+_v1.py -i test/HC_CEU_Neut_Concatenated-DAF.txt --getSpect --no
   
 </details>
 
-The resulting files should be the same as `test/HC_CEU_Neut_config_for_B1.txt`, `test/HC_CEU_Neut_DAF_spect_for_B2.txt`, `test/HC_CEU_Neut_MAF_spect_for_B2maf.txt`, `test/HC_CEU_Neut_DAF-noSub_spect_for_B0.txt`, and `test/HC_CEU_Neut_MAF-noSub_spect_for_B0maf.txt`, respectively.
+The resulting files should be the same as `test/HC_CEU_Neut_config_for_B1.txt`, `test/HC_CEU_Neut_DAF_spect_for_B2.txt`, `test/HC_CEU_Neut_MAF_spect_for_B2maf.txt`, `test/HC_CEU_Neut_DAF-noSub_spect_for_B0.txt`, and `test/HC_CEU_Neut_MAF-noSub_spect_for_B0maf.txt`, respectively. Past `BalLeRMix` users may need to be aware that the output's header of `BalLeRMix+` is named slightly differently from before.
 
 <details open>
   <summary>To run B<sub>1</sub>, B<sub>2</sub>, and B<sub>2,MAF</sub>, respectively, on the first example:</summary>
