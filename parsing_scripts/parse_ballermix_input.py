@@ -4,7 +4,7 @@ This script jointly reads the recombination map (hapmap format) and alignment fi
 	- match recombination frequency
 and - write outputs that matches the input format required by BalLeRMix
 
-Note that this script has only been tested on human data. Please exercise caution when applied to other datasets, especially if the organism is not diploid. 
+Note that this script has only been tested on diploid data. Please exercise caution when applied to other datasets, especially if the organism is not diploid. 
 '''
 import sys, os, re, gzip
 
@@ -27,7 +27,7 @@ def _get_ids_from_vcf_header(header, pop_list):
 	else:
 		ID_list = range(9, len(header))
 
-	print(f'Data from {len(ID_list)} samples will be counted. The total number of samples in this vcf is {len(header[9:])}.')
+	print(f'Data from {len(ID_list)} samples will be counted.')# The total number of samples in this vcf is {len(header[9:])}.
 
 	return(ID_list)
 
@@ -76,6 +76,8 @@ def parse_vcf_only(chrom, vcffile, rec_rate, outfile, pop_list):
 	while l != '':
 		l = l.strip().split('\t')
 		if l[0] not in {chrom, 'chr'+chrom}:
+			# read next line
+			l = vcf.readline()
 			continue
 		# only process bi-allelic SNPs
 		if l[3] in SNP and l[4] in SNP and "PASS" in l[6]:
@@ -84,16 +86,23 @@ def parse_vcf_only(chrom, vcffile, rec_rate, outfile, pop_list):
 			x = 0; n = 0
 			for i in individual_ids:
 				GT = l[i].split(":")[GT_id]
+				# this command should be applicable to haploid data too
 				count = tuple(map( int, int_regex.findall(GT) ))
-				# sanity check
-				try:
-					assert max(count) <= 1
-				except Exception as e:
-					print("Warning: This script only applies to diploids.")
-					print(e)
-					sys.exit(1)
-				x += sum(count)
-				n += len(count)
+				
+				# if there's missing data:
+				if len(count) == 0:
+					assert "." in GT
+					#continue
+				else:
+					# sanity check: the readings should only be in {., 0, 1}
+					try:
+						assert max(count) <= 1
+					except Exception as e:
+						print("Warning: This script only applies to diploid and haploid data.")
+						print(GT, count, e)
+						sys.exit(1)
+					x += sum(count)
+					n += len(count)
 			# write output
 			if x > 0 and x < n:
 				x = min(n-x, x) #make sure it's MAF
@@ -150,14 +159,19 @@ def parse_vcf_w_recmap(chrom, vcffile, rec_map, rec_rate, outfile, pop_list):
 	while l != '':
 		l = l.strip().split('\t')
 		# sanity check: make sure vcf and bed are on the same chromosome
-		try:
-			assert l[0] in {chrom, 'chr'+chrom }
-			assert int_regex.findall(chrom)[0] == int_regex.findall(l[0])[0]
-		except Exception as e:
-			#print(ch, l[:5], type(ch), type(l[0]))
-			print('Please make sure the recombination map and vcf cover the same chromosome.')
-			print(l[0], e)
-			sys.exit(1)
+		if l[0] not in {chrom, 'chr'+chrom}:
+			# read next line
+			l = vcf.readline()
+			continue
+		else:
+			try:
+				assert l[0] in {chrom, 'chr'+chrom }
+				assert int_regex.findall(chrom)[0] == int_regex.findall(l[0])[0]
+			except Exception as e:
+				#print(ch, l[:5], type(ch), type(l[0]))
+				print('Please make sure the recombination map and vcf cover the same chromosome.')
+				print(l[0], e)
+				sys.exit(1)
 
 		# only process bi-allelic SNPs
 		if l[3] in SNP and l[4] in SNP and "PASS" in l[6]:
@@ -200,16 +214,23 @@ def parse_vcf_w_recmap(chrom, vcffile, rec_map, rec_rate, outfile, pop_list):
 			GT_id = _get_GT_index(l)
 			for i in individual_ids:
 				GT = l[i].split(":")[GT_id]
+				# this command should be applicable to haploid data too
 				count = tuple(map( int, int_regex.findall(GT) ))
-				# sanity check
-				try:
-					assert max(count) <= 1
-				except Exception as e:
-					print("Warning: This script only applies to diploids.")
-					print(e)
-					sys.exit(1)
-				x += sum(count)
-				n += len(count)
+				
+				# if there's missing data:
+				if len(count) == 0:
+					assert "." in GT
+					#continue
+				else:
+					# sanity check: the readings should only be in {., 0, 1}
+					try:
+						assert max(count) <= 1
+					except Exception as e:
+						print("Warning: This script only applies to diploid and haploid data.")
+						print(GT, count, e)
+						sys.exit(1)
+					x += sum(count)
+					n += len(count)
 			# write output if x != 0
 			if x > 0 and x < n:
 				x = min(n-x, x)
@@ -285,7 +306,7 @@ def _load_alignment(axtfile, chrom):
 
 
 '''Read through the sequence alignment, polarize the frequency, and get output, assume uniform rec rate'''
-def parse_axt_and_vcf(ch, axtfile, vcffile, rec_rate, outfile, pop_list):
+def parse_axt_and_vcf(ch, axtfile, vcffile, rec_rate, outfile, pop_list, ploidy):
 	# load axt file
 	print(f'Loading the alignment for chr{ch}...')
 	axt_lib, aligned_pos = _load_alignment(axtfile, ch)
@@ -308,7 +329,7 @@ def parse_axt_and_vcf(ch, axtfile, vcffile, rec_rate, outfile, pop_list):
 	## from "FORMAT" get how to obtain GT
 	individual_ids = _get_ids_from_vcf_header(l, pop_list)
 	try:
-		sampleSize = 2* len(individual_ids)
+		sampleSize = ploidy * len(individual_ids)
 	except Exception as e:
 		print(e)
 		print(individual_ids)
@@ -318,7 +339,7 @@ def parse_axt_and_vcf(ch, axtfile, vcffile, rec_rate, outfile, pop_list):
 	l = vcf.readline()
 	l = vcf.readline()
 	try:
-	#initiate indexing on aligned pos list
+		#initiate indexing on aligned pos list
 		axt_pos_i = 0 ; axt_pos = aligned_pos[axt_pos_i] ; axt_eof = False
 	except Exception as e:
 		print(e)
@@ -331,7 +352,11 @@ def parse_axt_and_vcf(ch, axtfile, vcffile, rec_rate, outfile, pop_list):
 			break
 		l = l.strip().split('\t')
 		# sanity check: it's the same chromosome
-		assert l[0] in {ch, 'chr'+ch} 
+		try:
+			assert l[0] in {ch, 'chr'+ch} 
+		except:
+			# keep reading till it's the right chromosome
+			continue
 		# check if pos in axt_pos & update axt_pos_i
 		pos = int(l[1])
 		while axt_pos < pos:
@@ -383,16 +408,23 @@ def parse_axt_and_vcf(ch, axtfile, vcffile, rec_rate, outfile, pop_list):
 			x = 0; n = 0
 			for i in individual_ids:
 				GT = l[i].split(":")[GT_id]
+				# this command should be applicable to haploid data too
 				count = tuple(map( int, int_regex.findall(GT) ))
-				# sanity check for bi-allelic
-				try:
-					assert set(count).issubset({0,1})
-				except Exception as e:
-					print("Warning: This script only applies to diploids.")
-					print(e)
-					sys.exit(1)
-				x += sum(count)
-				n += len(count)
+				
+				# if there's missing data:
+				if len(count) == 0:
+					assert "." in GT
+					#continue
+				else:
+					# sanity check: the readings should only be in {., 0, 1}
+					try:
+						assert max(count) <= 1
+					except Exception as e:
+						print("Warning: This script only applies to diploid and haploid data.")
+						print(GT, count, e)
+						sys.exit(1)
+					x += sum(count)
+					n += len(count)
 			if flip:
 				# remove x==n
 				if x < n:
@@ -415,7 +447,7 @@ def parse_axt_and_vcf(ch, axtfile, vcffile, rec_rate, outfile, pop_list):
 
 
 '''Read through the sequence alignment, polarize the frequency, and get genetic position from matching rec map'''
-def parse_axt_and_vcf_w_recmap(ch, axtfile, vcffile, rec_map, rec_rate, outfile, pop_list):
+def parse_axt_and_vcf_w_recmap(ch, axtfile, vcffile, rec_map, rec_rate, outfile, pop_list, ploidy):
 	# load axt file
 	print(f'Loading the alignment for chr{ch}...')
 	axt_lib, aligned_pos = _load_alignment(axtfile, ch)
@@ -455,7 +487,7 @@ def parse_axt_and_vcf_w_recmap(ch, axtfile, vcffile, rec_map, rec_rate, outfile,
 	## now l is vcf header
 	## 0CHROM	1POS	2ID	3REF	4ALT	5QUAL	6FILTER	7INFO	8FORMAT	9:<individuals>
 	individual_ids = _get_ids_from_vcf_header(l, pop_list)
-	sampleSize = 2* len(individual_ids)
+	sampleSize = ploidy * len(individual_ids)
 	try:
 		#initiate indexing on aligned pos list
 		axt_pos_i = 0 ; axt_pos = aligned_pos[axt_pos_i] ; axt_eof = False
@@ -474,9 +506,9 @@ def parse_axt_and_vcf_w_recmap(ch, axtfile, vcffile, rec_map, rec_rate, outfile,
 		try:
 			assert l[0] in {ch, 'chr'+ch}
 		except Exception as e:
-			print(e)
 			print(l[0], ch, {ch, 'chr'+ch})
 			print(l[:11])
+			print(e)
 			sys.exit(1) 
 		# check if pos in axt_pos & update axt_pos_i
 		pos = int(l[1])
@@ -557,16 +589,23 @@ def parse_axt_and_vcf_w_recmap(ch, axtfile, vcffile, rec_map, rec_rate, outfile,
 			x = 0; n = 0
 			for i in individual_ids:
 				GT = l[i].split(":")[GT_id]
+				# this command should be applicable to haploid data too
 				count = tuple(map( int, int_regex.findall(GT) ))
-				# sanity check for bi-allelic
-				try:
-					assert set(count).issubset({0,1})
-				except Exception as e:
-					print("Warning: This script only applies to diploids.")
-					print(e)
-					sys.exit(1)
-				x += sum(count)
-				n += len(count)
+				
+				# if there's missing data:
+				if len(count) == 0:
+					assert "." in GT
+					#continue
+				else:
+					# sanity check: the readings should only be in {., 0, 1}
+					try:
+						assert max(count) <= 1
+					except Exception as e:
+						print("Warning: This script only applies to diploid and haploid data.")
+						print(GT, count, e)
+						sys.exit(1)
+					x += sum(count)
+					n += len(count)
 
 			# get genetic position (in cM)
 			if pos <= r_pos:
@@ -630,6 +669,7 @@ def main():
 	parser.add_argument('--axt', dest = 'axtfile', default = None, help = 'Path and name of the sequence alignment (in .axt or .axt.gz) for calling substitution and polarizing the allele frequency. If not provided, then the output will only be applicable to B_0maf.')
 	parser.add_argument('--rec_rate', dest = 'rec_rate', type = float, default = 1e-6, help = 'Recombination rate in cM/nt. Default value is 1e-6 cM/nt.')
 	parser.add_argument('--rec_map', dest = 'rec_map', default = None, help = 'Path and name of the recombination map (hapmap format) of the same sequence. If not provided, a uniform recombination rate will be applied with a default rate of 1e-6 cM/nt. Use \"--rec_rate\" to specify another rate.')
+	parser.add_argument('--hap', dest = 'hap', action = 'store_true', default = False, help = 'Indicate that the organism in vcf is a haploid. Not necessary unless substitutions need to be called.')
 
 	
 	if len(sys.argv[1:]) == 0:
@@ -642,15 +682,19 @@ def main():
 	last = time.time()
 	if opt.rec_map is not None:
 		if opt.axtfile is not None:
+			# if hap==T, ploidy = 1, else ploidy = 2
+			ploidy = int(opt.hap) + (1-opt.hap)*2
 			print(time.ctime(), f'Parsing BalLeRMix input for B_2 with genetic positions matching the recombination map. Assume genomic regions not covered by the map to recombine at {opt.rec_rate} cM/nt.')
-			parse_axt_and_vcf_w_recmap(opt.ch, opt.axtfile, opt.vcffile, opt.rec_map, opt.rec_rate, opt.outfile, opt.pop_list)
+			parse_axt_and_vcf_w_recmap(opt.ch, opt.axtfile, opt.vcffile, opt.rec_map, opt.rec_rate, opt.outfile, opt.pop_list, ploidy)
 		else:
 			print(time.ctime(), f'Parsing BalLeRMix input for B_0maf with genetic positions matching the recombination map. Assume genomic region not covered by the map to recombine at {opt.rec_rate} cM/nt.')
 			parse_vcf_w_recmap(opt.ch, opt.vcffile, opt.rec_map, opt.rec_rate, opt.outfile, opt.pop_list)
 	else:
 		if opt.axtfile is not None:
+			# if hap==T, ploidy = 1, else ploidy = 2
+			ploidy = int(opt.hap) + (1-opt.hap)*2
 			print(time.ctime(), f'Parsing BalLeRMix input for B_2 with a uniform recombination rate of {opt.rec_rate} cM/nt...')
-			parse_axt_and_vcf(opt.ch, opt.axtfile, opt.vcffile, opt.rec_rate, opt.outfile, opt.pop_list)
+			parse_axt_and_vcf(opt.ch, opt.axtfile, opt.vcffile, opt.rec_rate, opt.outfile, opt.pop_list, ploidy)
 		else:
 			print(time.ctime(), f'Parsing BalLeRMix input for B_0maf with a uniform recombination rate of {opt.rec_rate} cM/nt...')
 			parse_vcf_only(opt.ch, opt.vcffile, opt.rec_rate, opt.outfile, opt.pop_list)
