@@ -96,27 +96,78 @@ Notes:
  
  </details>
   
-  To parse these files into BalLeRMix-ready format, use the following command:
+  To parse these files into BalLeRMix-ready format, if you only have VCF available:
   
-```Bash
-  # if you only have vcf available
-  ## indicate the chromosome id with -c/--chr
-  ## the vcf contain variant calls for all 2504 samples in 1KG project; the ID_list provides the sample IDs that should be included
-  ## assume a uniform recombination rate of 1.25e-6
-  python parse_ballermix_input.py --vcf Example3_first2000var.chr22.phase3_shapeit2_mvncall_integrated_v5b.20130502.genotypes.vcf.gz -c 22 --ID_list Example3_YRI_samples_1KG-v3.20130502.txt --rec_rate 1.25e-6 -o Example3_vcf-only_rec1.25e-6_b0maf-ready.txt
-  
-  # if you also have recombination map
-  python parse_ballermix_input.py --vcf Example3_first2000var.chr22.phase3_shapeit2_mvncall_integrated_v5b.20130502.genotypes.vcf.gz -c 22 --ID_list Example3_YRI_samples_1KG-v3.20130502.txt --rec_map Example3_YRI_0-1622e4_rec_map_hapmap_format_hg19_chr22.txt -o Example3_vcf-plus-recmap_b0maf-ready.txt
-  
-  # if you don't have rec map, but do have pairwise alignment with a close outgroup (chimpanzee here)
-  ## assume a uniform recombination rate of 1.25e-6 cM/nt
-  python parse_ballermix_input.py --vcf Example3_first2000var.chr22.phase3_shapeit2_mvncall_integrated_v5b.20130502.genotypes.vcf.gz -c 22 --ID_list Example3_YRI_samples_1KG-v3.20130502.txt --axt Example3_chr22_good.hg19.panTro6.net.axt.gz --rec_rate 1.25e-6 -o Example3_vcf-plus-axt_rec1.25e-6_ballermix-ready.txt
+```bash
+# Save filenames to variables for convenience
+## the vcf contain variant calls for all 2504 samples in 1KG project; 
+$ VCF_FILE="Example3_first2000var.chr22.phase3_shapeit2_mvncall_integrated_v5b.20130502.genotypes.vcf.gz"
+## the ID_list provides the sample IDs that should be included
+$ ID_LIST="Example3_YRI_samples_1KG-v3.20130502.txt"
+## HapMap-formatted recombination rate map
+$ REC_MAP="Example3_YRI_0-1622e4_rec_map_hapmap_format_hg19_chr22.txt"
+## Pairwise alignment between human and chimpanzees (close outgroup)
+$ AXT_FILE="Example3_chr22_good.hg19.panTro6.net.axt.gz"
 
-  # if you have both rec map and pairwise alignment
-  python parse_ballermix_input.py --vcf Example3_first2000var.chr22.phase3_shapeit2_mvncall_integrated_v5b.20130502.genotypes.vcf.gz -c 22 --ID_list Example3_YRI_samples_1KG-v3.20130502.txt --axt Example3_chr22_good.hg19.panTro6.net.axt.gz --rec_map Example3_YRI_0-1622e4_rec_map_hapmap_format_hg19_chr22.txt -o Example3_vcf-axt-recmap_ballermix-ready.txt
-                                                                                                         
-  # note that "--rec_map" and "--rec_rate" are not mutually exclusive. When a map is provided, genomic regions not covered by the map are assumed to have a recombination rate specified by "--rec_rate". If it's not specified, the default is 1e-6
-  python parse_ballermix_input.py --vcf Example3_first2000var.chr22.phase3_shapeit2_mvncall_integrated_v5b.20130502.genotypes.vcf.gz -c 22 --ID_list Example3_YRI_samples_1KG-v3.20130502.txt --axt Example3_chr22_good.hg19.panTro6.net.axt.gz --rec_map Example3_YRI_0-1622e4_rec_map_hapmap_format_hg19_chr22.txt --rec_rate 1.25e-6 -o Example3_vcf-axt-recmap_rec1.25e-6_ballermix-ready.txt
+# if you only have vcf available
+## indicate the chromosome id with -c/--chr
+## assume a uniform recombination rate of 1.25e-6 cM/nt
+$ python parse_ballermix_input.py \
+            --vcf "$VCF_FILE" -c 22  \
+            --ID_list "$ID_LIST"     \
+            --rec_rate 1.25e-6       \
+            -o Example3_vcf-only_rec1.25e-6_b0maf-ready.txt
 ```
 
-  You can compare your output files from these commands with the corresponding files in `test_output/` folder.
+When you also have a recombination map (in hapmap format):
+
+```bash
+# if you also have recombination map
+$ python parse_ballermix_input.py \
+            --vcf "$VCF_FILE" -c 22  \
+            --ID_list "$ID_LIST"     \
+            --rec_map "$REC_MAP"     \
+            -o Example3_vcf-plus-recmap_b0maf-ready.txt
+```
+
+When you have the pairwise alignment (in AXT format) of your species versus a close outgroup:
+
+```bash
+# if you don't have rec map, but do have pairwise alignment
+## assume a uniform recombination rate of 1.25e-6 cM/nt
+$ python parse_ballermix_input.py \
+            --vcf "$VCF_FILE" -c 22  \
+            --ID_list "$ID_LIST"     \
+            --axt "$AXT_FILE"        \
+            --rec_rate 1.25e-6       \
+            -o Example3_vcf-plus-axt_rec1.25e-6_ballermix-ready.txt
+```
+
+To use both the recombination map and pairwise alignment:
+
+```bash
+# if you have both rec map and pairwise alignment
+$ python parse_ballermix_input.py \
+            --vcf "$VCF_FILE" -c 22  \
+            --ID_list "$ID_LIST"     \
+            --axt "$AXT_FILE"        \
+            --rec_map "$REC_MAP"     \
+            -o Example3_vcf-axt-recmap_ballermix-ready.txt
+```
+
+Note that `--rec_map` and `--rec_rate` are not mutually exclusive. 
+When a recombination map is provided, genomic regions not covered by the map are assumed to have a recombination rate specified by `--rec_rate`. 
+When it's not specified, the default is 1e-6 cM/nt.
+
+```bash
+# to specify both rec_map and rec_rate:
+$ python parse_ballermix_input.py \
+            --vcf "$VCF_FILE" -c 22  \
+            --ID_list "$ID_LIST"     \
+            --axt "$AXT_FILE"        \
+            --rec_map "$REC_MAP"     \
+            --rec_rate 1.25e-6       \
+            -o Example3_vcf-axt-recmap_rec1.25e-6_ballermix-ready.txt
+```
+
+You can compare your output files from these commands with the corresponding files in `test_output/` folder.
