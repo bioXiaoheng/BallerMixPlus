@@ -33,30 +33,18 @@ class InputData:
 	'''
 
 	def __init__(self, infile, nofreq = False, MAF = False, nosub = False, minCount = 1, phys = False, Rrate = 1e-6):
-		self.position = []
-		self.genPos = []
-		self.count = []
-		self.total = []
-		self.numSites = 0 
+		self.numSites = 0
 		self.minCount = minCount
 		self.Rrate = Rrate
+		#per-site arrays (position, genPos, count, total) are populated as numpy
+		#arrays by readPolyCalls / readCounts below.
 		pos_type=1-int(phys) #index; 0 is physical position, 1 is genetic position
 
 		#read input
 		if nofreq:
 			self.readPolyCalls(infile, pos_type, Rrate)
-
-			self.count = np.array(self.count)
-			self.total = np.array(self.total)
-			self.genPos = np.array(self.genPos)
-			self.position = np.array(self.position)
 		else:
 			self.readCounts(infile, pos_type, Rrate)
-
-			self.count = np.array(self.count)
-			self.total = np.array(self.total)
-			self.genPos = np.array(self.genPos)
-			self.position = np.array(self.position)
 
 			_Bmaf = ['', 'MAF']   # s.t. _Bmaf[MAF] can be a nice suffix
 			_B02 = ['B_2', 'B_0']   # s.t. _B02[nosub] shows which gets computed
@@ -87,7 +75,7 @@ class InputData:
 					# check that derived freq is used
 					assert sum(self.count == 0) == 0
 				except:
-					print(f'Please make sure to include derived allele frequency only. Sites with zero derived alleles (x==0) should not be included in your input.')
+					print('Please make sure to include derived allele frequency only. Sites with zero derived alleles (x==0) should not be included in your input.')
 					# remove zeros
 					#indice_to_keep = np.where(self.count != 0)
 					#self.count = self.count[indice_to_keep]
@@ -108,6 +96,7 @@ class InputData:
 		0/1 calls, any site whose count differs from its sample size is treated as
 		polymorphic and any site with count == sample size as a substitution.'''
 		translate = False
+		count = []; total = []; genPos = []; position = []
 		with open(infile, 'r') as sites:
 			l = next(sites) #skip the header
 			for l in sites:
@@ -121,25 +110,30 @@ class InputData:
 					try:
 						assert k in set([0, 1])
 					except:
-						print( f'Input includes different variant counts despite choosing not to use allele frequencies (with --noFreq). All sites with counts smaller than substitutions will be considered as polymorphic. All sites with identical counts as sample sizes will be substitutions.')
+						print( 'Input includes different variant counts despite choosing not to use allele frequencies (with --noFreq). All sites with counts smaller than substitutions will be considered as polymorphic. All sites with identical counts as sample sizes will be substitutions.')
 						translate = True
-						k = (k!=n)
+						k = int(k!=n)
 				else:
 					#k=1 if polymorphism, k=0 if substitution
-					k = (k!=n) 
+					k = int(k!=n)
 
 				#store physPos*Rrate (column 0) if use physical position, else store genetic position (column 1)
 				sitepos = float(l[pos_type])*(1-pos_type)*Rrate + float(l[pos_type])*(pos_type)
-				
-				self.count.append(k)
-				self.total.append(n)
-				self.genPos.append(sitepos)
-				self.position.append(physPos)
+
+				count.append(k)
+				total.append(n)
+				genPos.append(sitepos)
+				position.append(physPos)
+		self.count = np.array(count)
+		self.total = np.array(total)
+		self.genPos = np.array(genPos)
+		self.position = np.array(position)
 
 	# for B2 or B0
 	def readCounts(self, infile, pos_type, Rrate):
 		'''Read input for the frequency-based statistics (B_2/B_2maf/B_0/B_0maf),
 		storing the derived-allele count, sample size and position of each site.'''
+		count = []; total = []; genPos = []; position = []
 		with open(infile , 'r') as sites:
 			l = next(sites)
 			for l in sites:
@@ -151,10 +145,14 @@ class InputData:
 				#store physPos*Rrate (column 0) if use physical position, else store genetic position (column 1)
 				sitepos = float(l[pos_type])*(1-pos_type)*Rrate + float(l[pos_type])*(pos_type)
 
-				self.count.append(k)
-				self.total.append(n)
-				self.genPos.append(sitepos)
-				self.position.append(physPos)
+				count.append(k)
+				total.append(n)
+				genPos.append(sitepos)
+				position.append(physPos)
+		self.count = np.array(count)
+		self.total = np.array(total)
+		self.genPos = np.array(genPos)
+		self.position = np.array(position)
 
 
 class Grids:
@@ -227,7 +225,7 @@ class NeutralSFS:
 				f=float(l[2])
 				if MAF:
 					if nosub and x == 0:
-						print(f'You have chosen to compute B_0maf. Please do not account for sites with zero counts (x==0) in your input.')
+						print('You have chosen to compute B_0maf. Please do not account for sites with zero counts (x==0) in your input.')
 						sys.exit()
 					try:
 						assert x < (n/2 + 1)
@@ -240,7 +238,7 @@ class NeutralSFS:
 							g[ (n-x, n)] = f
 				else:
 					if nosub and x == n:
-						print(f'You have chosen to compute B_2maf. Please do not account for substitutions (derived allele count x == n) in your input.')
+						print('You have chosen to compute B_2maf. Please do not account for substitutions (derived allele count x == n) in your input.')
 						sys.exit()
 					g[(x, n)] = f
 
@@ -264,15 +262,15 @@ class NeutralSFS:
 		statistic. Each line gives a sample size n with the genome-wide fractions
 		of substitutions and polymorphisms, stored in self.spect as
 		{(0, n): subs, (1, n): poly}.'''
-		N = [] ; checksum = 0.
+		N = [] ; checksum = 0. ; g = {}
 		with open(spectfile,'r') as spect:
 			for l in spect:
-				#l=next(spect) #only read first line
 				l=l.strip().split('\t')
 				n=int(l[0]); s=float(l[1]); p=float(l[2])
 				print(('Substitutions: %s ; polymorphisms: %s' %(s,p)))
 				checksum += (s+p)
-				g={(0,n):s,(1,n):p}
+				#accumulate across all sample sizes (one line per n)
+				g[(0,n)] = s; g[(1,n)] = p
 				N.append(n)
 				if n not in self.sampProps:
 					self.sampProps[n] = 0
@@ -324,7 +322,7 @@ class NeutralSFS:
 				#assert InputData.sampSizes.issubset( self.sampSizes )
 				assert all_xn_combos.issubset( set(self.spect.keys()) )
 			except:
-				print(f'Input data includes sample counts and sizes not included in the helper file. Please double-check your inputs.')
+				print('Input data includes sample counts and sizes not included in the helper file. Please double-check your inputs.')
 				sys.exit()
 
 			#vectorize
@@ -431,11 +429,11 @@ class NormalizedBetaBinom:
 			if Stat == "B1":
 				#sanity check
 				assert set(k) == set([0,1])
-				b = self._get_b(x, a)
-				bb = betabinom(n, a, b)
 				# substitution (k==0): the derived allele is fixed -> P(count == n)
 				# polymorphism (k==1): not monomorphic -> 1 - P(count == 0) - P(count == n)
-				probs = np.where( k == 0 , bb.pmf(n) , (1. - bb.pmf(0) - bb.pmf(n)) )
+				prob_fixed = self._get_betabinom_probs(n, n, x, a)
+				prob_anc = self._get_betabinom_probs(0, n, x, a)
+				probs = np.where( k == 0 , prob_fixed , (1. - prob_anc - prob_fixed) )
 				self.rawProbs[(n, x, a)] = probs
 
 			elif Stat == "B2" or Stat == 'B0':
@@ -759,7 +757,7 @@ def getSpect(infile, spectfile, MAF, nosub):
 					assert x <= n/2
 				except:
 					if not translate:
-						print(f'Input data includes non-MAF site/s (frequency >= 0.5) despite choosing to use B_maf (with --MAF). These frequencies will be folded for following analyses.')
+						print('Input data includes non-MAF site/s (frequency >= 0.5) despite choosing to use B_maf (with --MAF). These frequencies will be folded for following analyses.')
 						translate = True
 					x = n - x
 				x = min(x, n-x)
@@ -774,7 +772,7 @@ def getSpect(infile, spectfile, MAF, nosub):
 					#print(x, n, MAF, n*(1-MAF) )
 				except:
 					if not skip_report:
-						print(f'Input includes substitutions despite choosing to use B_0 or B_0maf (with --noSub). These sites will not be accounted for.')
+						print('Input includes substitutions despite choosing to use B_0 or B_0maf (with --noSub). These sites will not be accounted for.')
 						skip_report = True
 					#print('skipping...')
 					continue
