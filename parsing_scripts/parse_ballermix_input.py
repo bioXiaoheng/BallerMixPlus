@@ -6,13 +6,16 @@ and - write outputs that matches the input format required by BalLeRMix
 
 Note that this script has only been tested on diploid data. Please exercise caution when applied to other datasets, especially if the organism is not diploid. 
 '''
-import sys, os, re, gzip
+import sys, re, gzip
 
 SNP = {'A', 'T', 'C', 'G'}
 int_regex = re.compile(r'[0-9]+')
 
 
 def _get_ids_from_vcf_header(header, pop_list):
+    '''Return the column indices of the samples to count from a VCF header line.
+    If pop_list (a path to a comma-separated list of sample IDs) is given, only
+    those samples are used; otherwise every sample column (index 9 onward) is used.'''
     # prep header
     header = header.strip().split('\t')
     # 0CHROM    1POS    2ID    3REF    4ALT    5QUAL    6FILTER    7INFO    8FORMAT    9:<individuals>
@@ -35,12 +38,14 @@ def _get_ids_from_vcf_header(header, pop_list):
 
 
 def _get_GT_index(line):
-    # get GT index
+    '''Return the position of the GT (genotype) field within the VCF FORMAT column.'''
     GT_index = line[8].split(":").index("GT")
     return GT_index
 
 
 def _open_large_file(filename, suffix=""):
+    '''Open a possibly gzipped text file for reading. Files ending in .gz are opened
+    transparently with gzip; otherwise the name must end in the expected suffix.'''
     if filename.lower().endswith('.gz'):
         file = gzip.open(filename, 'rt')
     elif filename.lower().endswith(suffix):
@@ -56,7 +61,7 @@ def parse_vcf_only(chrom, vcffile, rec_rate, outfile, pop_list):
     """In the absence of rec map and alignment, read vcf and write MAF output with uniform recombination rate."""
     # write header of output
     out = open(outfile, 'w')
-    out.write(f'position\tgenPos\tx\tn\n')
+    out.write('position\tgenPos\tx\tn\n')
 
     # open vcf
     vcf = _open_large_file(vcffile, '.vcf')
@@ -125,7 +130,7 @@ def parse_vcf_w_recmap(chrom, vcffile, rec_map, rec_rate, outfile, pop_list):
     """When recombination map is given, jointly read vcf and bed file to write MAF output"""
     # write header of output
     out = open(outfile, 'w')
-    out.write(f'position\tgenPos\tx\tn\n')
+    out.write('position\tgenPos\tx\tn\n')
 
     # open vcf
     vcf = _open_large_file(vcffile, '.vcf')
@@ -135,7 +140,7 @@ def parse_vcf_w_recmap(chrom, vcffile, rec_map, rec_rate, outfile, pop_list):
     ## start reading map:
     rec_l = recmap.readline().strip().split("\t")
     # skip header if there's any
-    if int_regex.findall(rec_l[1]) != rec_l[1]:
+    if not rec_l[1].isdigit():
         print('Skipping header.')
         rec_l = recmap.readline().strip().split("\t")
     rec_ch = rec_l[0]
@@ -254,14 +259,13 @@ def parse_vcf_w_recmap(chrom, vcffile, rec_map, rec_rate, outfile, pop_list):
 
 
 def _load_alignment(axtfile, chrom):
-    """Read & "remember" the ancestral sequence on a chromosome
-    # make sure that chrom is chromosome id (without chr)
-    """
+    """Read the pairwise alignment (.axt) for the given chromosome and record, for
+    every gap-free aligned site, a mapping position -> (primary base, aligning base).
+    `chrom` is the chromosome id without the 'chr' prefix. Returns (axt_lib, sorted
+    list of aligned positions)."""
     axt_lib = {}  # position: (ref, anc)
     aligned_positions = []
     atcg_start = re.compile(r'^[A|T|C|G]')
-    # lone_atcg = re.compile(r'^[A|T|C|G]$')
-    good_chr = re.compile(r'(chr|ch)?([0-9]+|X|Y)[a-z|A-Z]*$')
     axt = _open_large_file(axtfile, '.axt')
     l = axt.readline()
 
@@ -292,8 +296,8 @@ def _load_alignment(axtfile, chrom):
         if l == ['']:
             print('skipped ', len(set(chroms)), ' chromosomes:' '\n', chroms, 'chr' + chrom)
             break
-        # l = l.strip().split(" ")
-        start, end = int(l[2]), int(l[3])
+        # format: 0# 1chr 2start 3end 4chr_anc 5start_anc 6end_anc 7strand 8blastscore
+        start = int(l[2])
         primary_seq = axt.readline().strip().upper()
         aligning_seq = axt.readline().strip().upper()
         if l == '':
@@ -341,7 +345,7 @@ def parse_axt_and_vcf(ch, axtfile, vcffile, rec_rate, outfile, pop_list, ploidy:
     # read and parse vcf:
     # write header of output
     out = open(outfile, 'w')
-    out.write(f'position\tgenPos\tx\tn\n')
+    out.write('position\tgenPos\tx\tn\n')
 
     # open vcf
     vcf = _open_large_file(vcffile, '.vcf')
@@ -358,9 +362,7 @@ def parse_axt_and_vcf(ch, axtfile, vcffile, rec_rate, outfile, pop_list, ploidy:
     print('Parsing ', len(individual_ids), 'individuals of ', ploidy, 'ploidy.')
     sampleSize = ploidy * len(individual_ids)
     # start reading data
-    # int_regex = re.compile(r'[0-9]+')
     # 0CHROM    1POS    2ID    3REF    4ALT    5QUAL    6FILTER    7INFO    8FORMAT    9:<individuals>
-    l = vcf.readline()
     l = vcf.readline()
 
     # initiate indexing on aligned pos list
@@ -370,14 +372,12 @@ def parse_axt_and_vcf(ch, axtfile, vcffile, rec_rate, outfile, pop_list, ploidy:
 
     # start reading data
     while l != '':
-        l = l.strip().split('\t')
-        # sanity check: it's the same chromosome
-        try:
-            assert l[0] in {ch, 'chr' + ch}
-        except Exception as e:
-            print(e)
-            # keep reading till it's the right chromosome
+        fields = l.strip().split('\t')
+        # skip lines that are not on the target chromosome
+        if fields[0] not in {ch, 'chr' + ch}:
+            l = vcf.readline()
             continue
+        l = fields
         # check if pos in axt_pos & update axt_pos_i
         pos = int(l[1])
         while axt_pos < pos:
@@ -393,7 +393,7 @@ def parse_axt_and_vcf(ch, axtfile, vcffile, rec_rate, outfile, pop_list, ploidy:
             try:
                 axt_pos = aligned_pos[axt_pos_i]
             except IndexError:
-                print(f'No more recorded positions.')
+                print('No more recorded positions.')
                 axt_eof = True
                 break
         # end of while-loop for axt
@@ -438,7 +438,7 @@ def parse_axt_and_vcf(ch, axtfile, vcffile, rec_rate, outfile, pop_list, ploidy:
                 # what other cases could there be...?
                 else:
                     print(
-                        f'On chr{ch} position {pos}, ref, anc in axt: ({axt_ref}, {axt_anc}); in vcf: ({ref}, {alt}), set(axt_ref, axt_anc, ref, alt) = {set(list(axt_ref, axt_anc, ref, anc))}.')
+                        f'On chr{ch} position {pos}, ref, anc in axt: ({axt_ref}, {axt_anc}); in vcf: ({ref}, {alt}), set(axt_ref, axt_anc, ref, alt) = {set([axt_ref, axt_anc, ref, alt])}.')
                     sys.exit(1)
             # get genotype
             GT_id = _get_GT_index(l)
@@ -487,10 +487,9 @@ def parse_axt_and_vcf(ch, axtfile, vcffile, rec_rate, outfile, pop_list, ploidy:
     out.close()
 
 
-'''Read through the sequence alignment, polarize the frequency, and get genetic position from matching rec map'''
-
-
 def parse_axt_and_vcf_w_recmap(ch, axtfile, vcffile, rec_map, rec_rate, outfile, pop_list, ploidy):
+    '''Read through the sequence alignment, polarize the frequency, and obtain the
+    genetic position by interpolating the matching recombination map (B_2 input).'''
     # load axt file
     print(f'Loading the alignment for chr{ch}...')
     axt_lib, aligned_pos = _load_alignment(axtfile, ch)
@@ -500,7 +499,7 @@ def parse_axt_and_vcf_w_recmap(ch, axtfile, vcffile, rec_map, rec_rate, outfile,
     # read and parse vcf:
     # write header of output
     out = open(outfile, 'w')
-    out.write(f'position\tgenPos\tx\tn\n')
+    out.write('position\tgenPos\tx\tn\n')
 
     # open vcf
     vcf = _open_large_file(vcffile, '.vcf')
@@ -510,7 +509,7 @@ def parse_axt_and_vcf_w_recmap(ch, axtfile, vcffile, rec_map, rec_rate, outfile,
     ## start reading map:
     rec_l = recmap.readline().strip().split("\t")
     # skip header if there's any
-    if int_regex.findall(rec_l[1]) != rec_l[1]:
+    if not rec_l[1].isdigit():
         print('Skipping header.')
         rec_l = recmap.readline().strip().split("\t")
     rec_ch = rec_l[0]
@@ -568,7 +567,7 @@ def parse_axt_and_vcf_w_recmap(ch, axtfile, vcffile, rec_map, rec_rate, outfile,
                         last_r_pos, last_r_rate, last_cum_CM = r_pos, rate, cum_cM
                         rec_l = recmap.readline().strip().split("\t")
                         if rec_l == ['']:  # presumably end-of-file
-                            print(f'End-of-file for the recombination map. '
+                            print('End-of-file for the recombination map. '
                                   f'Assume uniform rate of {rec_rate} after {last_r_pos}.')
                             r_pos, rate, cum_cM = 8e8, rec_rate * 1e6, (last_cum_CM + rec_rate * (8e8 - last_r_pos))
                             break
@@ -590,7 +589,7 @@ def parse_axt_and_vcf_w_recmap(ch, axtfile, vcffile, rec_map, rec_rate, outfile,
             try:
                 axt_pos = aligned_pos[axt_pos_i]
             except IndexError:
-                print(f'No more recorded positions in axt.')
+                print('No more recorded positions in axt.')
                 axt_eof = True
                 break
         # end of while-loop for axt
@@ -636,7 +635,7 @@ def parse_axt_and_vcf_w_recmap(ch, axtfile, vcffile, rec_map, rec_rate, outfile,
                     print(f'On chr{ch} position {pos}, '
                           f'ref, anc in axt: ({axt_ref}, {axt_anc}); '
                           f'in vcf: ({ref}, {alt}), '
-                          f'set(axt_ref, axt_anc, ref, alt) = {set(list(axt_ref, axt_anc, ref, anc))}.')
+                          f'set(axt_ref, axt_anc, ref, alt) = {set([axt_ref, axt_anc, ref, alt])}.')
                     sys.exit(1)
             # get genotype
             ## from "FORMAT" get how to obtain GT
@@ -714,6 +713,11 @@ def parse_axt_and_vcf_w_recmap(ch, axtfile, vcffile, rec_map, rec_rate, outfile,
 
 # ===================main body below===============
 def main():
+    '''Parse command-line arguments and dispatch to the appropriate parser based on
+    whether an alignment (--axt) and/or a recombination map (--rec_map) is supplied:
+    with an alignment the frequency is polarized (B_2 input), otherwise minor-allele
+    frequencies are written (B_0maf input); genetic positions come from the map when
+    given, else from a uniform recombination rate.'''
     import argparse
     parser = argparse.ArgumentParser()
 
