@@ -10,7 +10,7 @@ Xiaoheng Cheng, Michael DeGiorgio (2021) [BalLeRMix+: Mixture model approaches f
 
 In BalLeRMix+, we introduce the optional `--findPos` and `--findBal`, as well as `--fixAlpha <abeta>`, arguments to help specify the disperson parameter in beta-binomial distributions, with a value between 0 and 1 indicating positive selection, and a value larger than 1 indicating balancing selection. Based on feedback from BalLeRMix users, we also added a `--minCount` argument to indicate the smallest number of allele counts in the input data, in case the user chooses to remove rare variants from the data.
 
-To help visualize the output, we also added an R script in the `test/` folder in case you need. 
+To help generate input files for BalLeRMix and BalLeRMix+, we include a parsing script, `parse_ballermix_input.py`, along with Example 3 in the `parsing_scripts/` folder and [use instructions](parsing_scripts/readme.md). To help visualize the output, we also include an R script in the `test/` folder in case you need. 
 
 Note that BalLeRMix+ does not consider multi-allelic balancing selection as does BalLeRMix_v2.2.
 
@@ -19,9 +19,15 @@ Note that BalLeRMix+ does not consider multi-allelic balancing selection as does
 ## User Guide 
 
 ```
-usage: BalLeRMix+_v1.py [-h]  -i INFILE [-o OUTFILE] --spect SPECTFILE [--minCount MINCOUNT] [--getSpect] [--getConfig] 
-                        [--noFreq] [--MAF] [--findBal] [--findPos] [--usePhysPos] [--rec RRATE]
-                        [--fixWinSize] [-w W] [--noCenter] [-s STEP] [--fixX X] [--fixAlpha ABETA] [--rangeA SEQA] [--listA LISTA]
+usage: BalLeRMix+_v1.py [-h]  -i INFILE [-o OUTFILE] 
+                        --spect SPECTFILE [--getSpect] 
+                        [--minCount MINCOUNT] [--getConfig] 
+                        [--noFreq] [--MAF] 
+                        [--findBal] [--findPos] 
+                        [--usePhysPos] [--rec RRATE]
+                        [--fixWinSize] [-w W] [--noCenter] 
+                        [-s STEP] [--fixX X] [--fixAlpha ABETA] 
+                        [--rangeA SEQA] [--listA LISTA]
                        
 ```
 You can use `python BalLeRMix+_v1.py -h` to see a more detailed help page.
@@ -78,19 +84,34 @@ To obtain helper files from the concatenated input (`test/HC_CEU_Neut_Concatenat
   
 ```Bash
 # generate helper file for B1
-python BalLeRMix+_v1.py -i test/HC_CEU_Neut_Concatenated-DAF.txt --getConfig --spect test_config.txt
+$ python BalLeRMix+_v1.py  \
+        -i test/HC_CEU_Neut_Concatenated-DAF.txt \
+        --getConfig        \
+        --spect test_config.txt
 
 # generate helper file for B2
-python BalLeRMix+_v1.py -i test/HC_CEU_Neut_Concatenated-DAF.txt --getSpect --spect test_DFS.txt
+$ python BalLeRMix+_v1.py  \
+        -i test/HC_CEU_Neut_Concatenated-DAF.txt \
+        --getSpect         \
+        --spect test_DFS.txt
 
 # generate helper file for B2maf
-python BalLeRMix+_v1.py -i test/HC_CEU_Neut_Concatenated-DAF.txt --getSpect --MAF --spect test_MFS.txt
+$ python BalLeRMix+_v1.py  \
+        -i test/HC_CEU_Neut_Concatenated-DAF.txt \
+        --getSpect --MAF   \
+        --spect test_MFS.txt
 
 # generate helper file for B0
-python BalLeRMix+_v1.py -i test/HC_CEU_Neut_Concatenated-DAF.txt --getSpect --noSub --spect test_DFS-noSub.txt
+$ python BalLeRMix+_v1.py  \
+        -i test/HC_CEU_Neut_Concatenated-DAF.txt \
+        --getSpect --noSub \
+        --spect test_DFS-noSub.txt
 
 # generate helper file for B0maf
-python BalLeRMix+_v1.py -i test/HC_CEU_Neut_Concatenated-DAF.txt --getSpect --noSub --MAF --spect test_MFS-noSub.txt
+$ python BalLeRMix+_v1.py  \
+        -i test/HC_CEU_Neut_Concatenated-DAF.txt \
+        --getSpect --noSub --MAF \
+        --spect test_MFS-noSub.txt
 ```
   
 </details>
@@ -102,13 +123,24 @@ The resulting files should be the same as `test/HC_CEU_Neut_config_for_B1.txt`, 
 
 ```Bash
 #run B1
-python BalLeRMix+_v1.py -i test/Example1_fullSweep_200kya_DAF.txt -o testout_ex1_B1.txt --noFreq --spect test/HC_CEU_Neut_config_for_B1.txt
+$ python BalLeRMix+_v1.py  \
+        -i test/Example1_fullSweep_200kya_DAF.txt \
+        --spect test/HC_CEU_Neut_config_for_B1.txt \
+        --noFreq           \
+        -o testout_ex1_B1.txt 
 
 # run B2
-python BalLeRMix+_v1.py -i test/Example1_fullSweep_200kya_DAF.txt -o testout_ex1_B2.txt --spect test/HC_CEU_Neut_DAF_spect_for_B2.txt
+$ python BalLeRMix+_v1.py  \
+        -i test/Example1_fullSweep_200kya_DAF.txt \
+        --spect test/HC_CEU_Neut_DAF_spect_for_B2.txt \
+        -o testout_ex1_B2.txt 
 
 # run B2maf
-python BalLeRMix+_v1.py -i test/Example1_fullSweep_200kya_MAF.txt -o testout_ex1_B2maf.txt --MAF --spect test/HC_CEU_Neut_MAF_spect_for_B2maf.txt
+$ python BalLeRMix+_v1.py  \
+        -i test/Example1_fullSweep_200kya_DAF.txt \
+        --spect test/HC_CEU_Neut_MAF_spect_for_B2maf.txt \
+        --MAF              \
+        -o testout_ex1_B2maf.txt 
 
 ```
   
@@ -119,7 +151,7 @@ You will find that the output should be close, if not identical, to the files `t
 To visualize the *B<sub>1</sub>*, *B<sub>2</sub>*, and *B<sub>2,MAF</sub>* scores, you can try:
 
 ```Bash
-Rscript test/plotScores.r <output from BalLeRMix+_v1.py> <image name.png>
+$ Rscript test/plotScores.r <BalLeRMix+_output> <image_name>
 ```
 
 With the above command, you should be able to generate images resembling `test/ScorePlot_example1_B2.png`. Note that this R script requires the `ggplot2` package and will output images in PNG format.
@@ -128,12 +160,15 @@ The same operations can be repeated on example 2, and you can check your output 
 
 By default, the `BalLeRMix+_v1.py` script uses all informative sites provided in the input. With additional arguments, users can customize the size and centers of their sliding windows for the analyses. Details on these areguments are listed in section 4 As an example, one can run
 
-```Bash
-# compute B0maf (--noSub --MAF) while: 
-## using physical positions as coordinates (--usePhysPos) 
-## scan with sliding windows of a fixed physical size (--fixWinSize) of 1000 nt (-w 1000)
-## centered on every other (--step 2) informative sites
-python BalLeRMix+_v1.py --noSub --MAF --spect test/HC_CEU_Neut_MAF-nosub_spect_for_B0maf.txt -i test/Example2_balancing_10MYA_MAF_nosub.txt -o testout_B0maf_1kb-500b.txt --usePhysPos --fixWinSize -w 1000 --step 2  
+```bash
+$ python BalLeRMix+_v1.py \
+          -i test/Example2_balancing_10MYA_MAF_nosub.txt \
+          --spect test/HC_CEU_Neut_MAF-nosub_spect_for_B0maf.txt \
+          --noSub --MAF   \        # compute B0maf 
+          --usePhysPos    \        # using physical positions as coordinates
+          --fixWinSize -w 1000 \   # scan with sliding windows of a fixed physical size of 1000 nt
+          --step 2  \              # centered on every other informative sites
+          -o testout_B0maf_1kb-500b.txt 
 ```
 The output should be close, if not identical, to `test/output/Example2_B0maf_1kb-2sites.txt`.
 
@@ -169,16 +204,26 @@ The output should be close, if not identical, to `test/output/Example2_B0maf_1kb
 
   The `BalLeRMix+_v1.py` program can help generate helper files from the concatenated input files. 
   For site frequency spectrum: 
-
-      python BalLeRMix+_v1.py -i <concatenated input file> --getSpect --spect <spectrum file name>
-
+```bash
+$ python BalLeRMix+_v1.py  \
+        -i <concatenated_input> \
+        --getSpect         \
+        --spect <spectrum_file>
+```
   For minor allele frequency spectrum:
-
-      python BalLeRMix+_v1.py -i <concatenated input file> --getSpect --MAF --spect <spectrum file name>
-
+```bash
+$ python BalLeRMix+_v1.py  \
+        -i <concatenated_input> \
+        --getSpect --MAF   \
+        --spect <spectrum_file>
+```
   For polymorphism-substitution configuration file:
-
-      python BalLeRMix+_v1.py -i <concatenated input file> --getConfig --spect <config file name>
+```bash
+$ python BalLeRMix+_v1.py  \
+        -i <concatenated_input> \
+        --getConfig        \
+        --spect <config_file>
+```
 
 </details>
 
@@ -187,16 +232,19 @@ The output should be close, if not identical, to `test/output/Example2_B0maf_1kb
 <summary></summary>
 To perform B<sub>2</sub> scans on your input data, use
 
-    python BalLeRMix+_v1.py -i <input> --spect <derived allele frequency spectrum> -o <output>
+```bash
+$ python BalLeRMix+_v1.py -i <input> --spect <derived allele frequency spectrum> -o <output>
+```
 
 To perform B<sub>2,MAF</sub> scans on your input data, use
-
-    python BalLeRMix+_v1.py -i <input> --spect <minor allele frequency spectrum> -o <output> --MAF
+```bash
+    $ python BalLeRMix+_v1.py -i <input> --spect <minor allele frequency spectrum> -o <output> --MAF
+```
 
 To perform B<sub>1</sub> scans on your input data, use
-
-    python BalLeRMix+_v1.py -i <input> --config <sub/poly configuration file> -o <output> --noFreq
-
+```bash
+    $ python BalLeRMix+_v1.py -i <input> --config <sub/poly configuration file> -o <output> --noFreq
+```
 </details>
   
 ### 4. Customizing the sliding window for your scan
