@@ -6,8 +6,8 @@ positive selection.
 import sys
 from datetime import datetime
 
-import numpy as np
-from scipy.stats import betabinom
+import numpy as np # type: ignore
+from scipy.stats import betabinom # type: ignore
 
 #module for reading input
 class InputData:
